@@ -1,7 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import Countdown from '@/components/CountDown';
 
 export default function LevelScreen() {
   return (
@@ -16,7 +15,7 @@ export default function LevelScreen() {
         </View>
       </View>
 
-      {/* Lista de Niveles */}
+      {/* Niveles */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Niveles</Text>
         <View style={styles.levelsRow}>
@@ -26,7 +25,7 @@ export default function LevelScreen() {
         </View>
       </View>
 
-      {/* Puntaje y tiempo del respectivo nivel seleccionado*/}
+      {/* Puntaje y tiempo */}
       <View style={styles.scoreRow}>
         <View style={styles.scoreBox}>
           <Text style={styles.scoreLabel}>Mejor puntaje</Text>
@@ -34,11 +33,18 @@ export default function LevelScreen() {
           <Text style={styles.scoreLabel}>Mejor tiempo</Text>
           <Text style={styles.scoreValue}>Tiempo</Text>
         </View>
+        <View style={styles.imageBox}>
+          {/* Imagen de muestra */}
+          <Image
+            source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Statue_of_Liberty_7.jpg' }}
+            style={styles.image}
+          />
+        </View>
       </View>
 
       {/* Próxima vida */}
       <View style={styles.nextLifeBox}>
-        <Text style={styles.nextLifeText}><View><Countdown/></View></Text>
+        <Text style={styles.nextLifeText}>Próxima vida en : -</Text>
       </View>
 
       {/* Saltos de nivel */}
@@ -53,7 +59,7 @@ export default function LevelScreen() {
         </View>
       </View>
 
-      {/* Botón */}
+      {/* Botón jugar */}
       <TouchableOpacity style={styles.playButton}>
         <Text style={styles.playText}>Jugar</Text>
       </TouchableOpacity>
@@ -95,15 +101,11 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     marginBottom: 6,
-    fontSize: 20,
-    
   },
   levelsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 5,
-    marginTop: 5,
   },
   levelComplete: {
     backgroundColor: '#2ecc71',
@@ -132,7 +134,6 @@ const styles = StyleSheet.create({
   scoreRow: {
     flexDirection: 'row',
     marginBottom: 10,
-    marginTop: 5,
   },
   scoreBox: {
     flex: 1,
@@ -215,10 +216,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
-    position: 'absolute',
-    bottom: 85,
-    left: 15,
-    right: 15,
   },
   playText: {
     color: '#fff',
@@ -231,10 +228,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 10,
     borderRadius: 20,
-    position: 'absolute',
-    bottom: 15,
-    left: 15,
-    right: 15,
   },
   footerButton: {
     alignItems: 'center',
