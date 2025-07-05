@@ -24,13 +24,10 @@ export default function Countdown() {
       setTimeLeft(formatted);
     };
 
-    // Calcula inmediatamente
     calculateTimeLeft();
 
-    // Actualiza cada minuto
     const interval = setInterval(calculateTimeLeft, 60 * 1000);
 
-    // Limpia el intervalo al desmontar
     return () => clearInterval(interval);
   }, []);
 
@@ -44,13 +41,13 @@ export default function Countdown() {
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#111',
-    padding: 12,
+    padding: 10,
     borderRadius: 8,
     alignItems: 'center',
-    marginVertical: 10,
+    marginVertical: 5,
   },
   text: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 20,
   },
 });

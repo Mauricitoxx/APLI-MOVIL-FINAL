@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import ToolSelector from '@/components/ToolSelector';
 import Countdown from '@/components/CountDown';
 
 export default function LevelScreen() {
@@ -16,7 +17,7 @@ export default function LevelScreen() {
         </View>
       </View>
 
-      {/* Lista de Niveles */}
+      {/* Niveles */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Niveles</Text>
         <View style={styles.levelsRow}>
@@ -26,7 +27,7 @@ export default function LevelScreen() {
         </View>
       </View>
 
-      {/* Puntaje y tiempo del respectivo nivel seleccionado*/}
+      {/* Puntaje y tiempo */}
       <View style={styles.scoreRow}>
         <View style={styles.scoreBox}>
           <Text style={styles.scoreLabel}>Mejor puntaje</Text>
@@ -38,22 +39,13 @@ export default function LevelScreen() {
 
       {/* Próxima vida */}
       <View style={styles.nextLifeBox}>
-        <Text style={styles.nextLifeText}><View><Countdown/></View></Text>
+        <Text style={styles.nextLifeText}><Countdown /></Text>
       </View>
 
       {/* Saltos de nivel */}
-      <View style={styles.jumpRow}>
-        <View style={styles.jumpBox}>
-          <Text style={styles.jumpLabel}>Saltos de nivel</Text>
-          <Text style={styles.jumpText}>Ideal para cuando el nivel ya no te representa</Text>
-        </View>
-        <View style={styles.counterBox}>
-          <Text style={styles.counterLabel}>Tienes:</Text>
-          <Text style={styles.counterNumber}>C</Text>
-        </View>
-      </View>
+      <ToolSelector />
 
-      {/* Botón */}
+      {/* Botón jugar */}
       <TouchableOpacity style={styles.playButton}>
         <Text style={styles.playText}>Jugar</Text>
       </TouchableOpacity>
@@ -78,15 +70,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 20,
   },
   currency: {
     backgroundColor: '#111',
-    padding: 8,
+    padding: 15,
     borderRadius: 12,
   },
   currencyText: {
     color: '#fff',
+    fontSize: 15,
   },
   section: {
     marginBottom: 10,
@@ -94,16 +87,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: '#fff',
     fontWeight: 'bold',
-    marginBottom: 6,
     fontSize: 20,
-    
+    marginBottom: 6,
   },
   levelsRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 6,
-    marginBottom: 5,
-    marginTop: 5,
   },
   levelComplete: {
     backgroundColor: '#2ecc71',
@@ -132,7 +122,6 @@ const styles = StyleSheet.create({
   scoreRow: {
     flexDirection: 'row',
     marginBottom: 10,
-    marginTop: 5,
   },
   scoreBox: {
     flex: 1,
@@ -140,6 +129,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     marginRight: 6,
+    marginTop: 5,
+    marginBottom: 5,
   },
   scoreLabel: {
     color: '#ccc',
@@ -165,7 +156,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
     padding: 10,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 15,
   },
   nextLifeText: {
     color: '#fff',
@@ -232,7 +223,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 20,
     position: 'absolute',
-    bottom: 15,
+    bottom: 30,
     left: 15,
     right: 15,
   },

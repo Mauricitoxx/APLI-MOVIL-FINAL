@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import ToolSelector from '@/components/ToolSelector';
+import Countdown from '@/components/CountDown';
 
 export default function LevelScreen() {
   return (
@@ -33,31 +35,15 @@ export default function LevelScreen() {
           <Text style={styles.scoreLabel}>Mejor tiempo</Text>
           <Text style={styles.scoreValue}>Tiempo</Text>
         </View>
-        <View style={styles.imageBox}>
-          {/* Imagen de muestra */}
-          <Image
-            source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/a/a1/Statue_of_Liberty_7.jpg' }}
-            style={styles.image}
-          />
-        </View>
       </View>
 
       {/* Próxima vida */}
       <View style={styles.nextLifeBox}>
-        <Text style={styles.nextLifeText}>Próxima vida en : -</Text>
+        <Text style={styles.nextLifeText}><Countdown /></Text>
       </View>
 
       {/* Saltos de nivel */}
-      <View style={styles.jumpRow}>
-        <View style={styles.jumpBox}>
-          <Text style={styles.jumpLabel}>Saltos de nivel</Text>
-          <Text style={styles.jumpText}>Ideal para cuando el nivel ya no te representa</Text>
-        </View>
-        <View style={styles.counterBox}>
-          <Text style={styles.counterLabel}>Tienes:</Text>
-          <Text style={styles.counterNumber}>C</Text>
-        </View>
-      </View>
+      <ToolSelector />
 
       {/* Botón jugar */}
       <TouchableOpacity style={styles.playButton}>
@@ -84,15 +70,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 20,
   },
   currency: {
     backgroundColor: '#111',
-    padding: 8,
+    padding: 15,
     borderRadius: 12,
   },
   currencyText: {
     color: '#fff',
+    fontSize: 15,
   },
   section: {
     marginBottom: 10,
@@ -100,6 +87,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     color: '#fff',
     fontWeight: 'bold',
+    fontSize: 20,
     marginBottom: 6,
   },
   levelsRow: {
@@ -141,6 +129,8 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 8,
     marginRight: 6,
+    marginTop: 5,
+    marginBottom: 5,
   },
   scoreLabel: {
     color: '#ccc',
@@ -166,7 +156,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#111',
     padding: 10,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 15,
   },
   nextLifeText: {
     color: '#fff',
@@ -216,6 +206,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
+    position: 'absolute',
+    bottom: 85,
+    left: 15,
+    right: 15,
   },
   playText: {
     color: '#fff',
@@ -228,6 +222,10 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingVertical: 10,
     borderRadius: 20,
+    position: 'absolute',
+    bottom: 30,
+    left: 15,
+    right: 15,
   },
   footerButton: {
     alignItems: 'center',
