@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export default function Login() {
@@ -14,7 +14,6 @@ export default function Login() {
       return;
     }
     // Aquí iría la lógica de login
-    setError('');
   };
 
   return (
@@ -42,6 +41,9 @@ export default function Login() {
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Pressable style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Ingresar</Text>
+          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Home')}>
+            <Text style={styles.buttonText}>Iniciar sesión</Text>
+          </TouchableOpacity>
         </Pressable>
         <Pressable onPress={() => navigation.navigate('Register')}>
           <Text style={styles.link}>
