@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const navigation = useNavigation();
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -41,8 +43,10 @@ export default function Login() {
         <Pressable style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Ingresar</Text>
         </Pressable>
-        <Pressable>
-          <Text style={styles.link}>¿No tienes cuenta? Regístrate</Text>
+        <Pressable onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.link}>
+            ¿No tienes cuenta? Regístrate
+          </Text>
         </Pressable>
       </View>
     </View>

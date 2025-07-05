@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function Register() {
   const [name, setName] = useState('');
@@ -9,6 +10,7 @@ export default function Register() {
   const [rep_password, setRep_Password] = useState('');
 
   const [localError, setLocalError] = useState('');
+  const navigation = useNavigation();
 
   const handleRegister = () => {
     if (!name || !password || !email || !user || !rep_password) {
@@ -65,7 +67,7 @@ export default function Register() {
         <Pressable style={styles.button} onPress={handleRegister}>
           <Text style={styles.buttonText}>Registrarse</Text>
         </Pressable>
-        <Pressable>
+        <Pressable onPress={() => navigation.navigate('Login')}>
           <Text style={styles.link}>¿Ya tienes cuenta? Inicia sesión</Text>
         </Pressable>
       </View>
