@@ -5,7 +5,7 @@ export default function IndexScreen() {
   const navigation = useNavigation();
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Bienvenido a la App</Text>
+      <Text style={styles.title}>WORDLE</Text>
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
         <Text style={styles.buttonText}>Iniciar sesión</Text>
       </TouchableOpacity>
@@ -30,7 +30,7 @@ const styles = StyleSheet.create({
     color: '#4962f2',
   },
   button: {
-    backgroundColor: '#4962f2',
+    backgroundColor: '#7a4ef2',
     borderRadius: 10,
     paddingVertical: 14,
     paddingHorizontal: 32,
