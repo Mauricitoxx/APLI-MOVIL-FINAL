@@ -3,17 +3,27 @@ import { Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from '
 import { useNavigation } from '@react-navigation/native';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [mail, setMail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigation = useNavigation();
 
   const handleLogin = () => {
-    if (!email || !password) {
+    if (!mail || !password) {
       setError('Completa todos los campos');
       return;
     }
-    // Aquí iría la lógica de login
+
+    const usuario = usuarioRegistrado.find(
+      (u) => u.mail === mail && u.password === password
+    );
+
+    if (usuario) {
+      setError('');
+      navigation.navigate('Home')
+    } else {
+      setError('Usuario no registrado. Por favor regístrese.');
+    }
   };
 
   return (
@@ -27,8 +37,8 @@ export default function Login() {
         <TextInput
           style={styles.input}
           placeholder="Ingrese su Email"
-          value={email}
-          onChangeText={setEmail}
+          value={mail}
+          onChangeText={setMail}
           autoCapitalize="none"
         />
         <TextInput
@@ -40,15 +50,10 @@ export default function Login() {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Pressable style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Ingresar</Text>
-          <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Home')}>
             <Text style={styles.buttonText}>Iniciar sesión</Text>
-          </TouchableOpacity>
         </Pressable>
         <Pressable onPress={() => navigation.navigate('Register')}>
-          <Text style={styles.link}>
-            ¿No tienes cuenta? Regístrate
-          </Text>
+          <Text style={styles.link}> ¿No tienes cuenta? Regístrate </Text>
         </Pressable>
       </View>
     </View>
