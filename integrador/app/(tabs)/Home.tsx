@@ -3,12 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
 import Countdown from '@/components/CountDown';
-import { useNavigation } from '@react-navigation/native';
-
 
 export default function LevelScreen() {
-  const navigation = useNavigation();
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -56,21 +52,10 @@ export default function LevelScreen() {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="home" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.footerButton}
-          onPress={() => navigation.navigate('Shop')}
-        >
-          <Feather name="shopping-cart" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="play" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="user" size={24} color="#fff" />
-        </TouchableOpacity>
+        <TouchableOpacity style={styles.footerButton}><Feather name="home" size={24} color="#fff" /></TouchableOpacity>
+        <TouchableOpacity style={styles.footerButton}><Feather name="shopping-cart" size={24} color="#fff" /></TouchableOpacity>
+        <TouchableOpacity style={styles.footerButton}><Feather name="play" size={24} color="#fff" /></TouchableOpacity>
+        <TouchableOpacity style={styles.footerButton}><Feather name="user" size={24} color="#fff" /></TouchableOpacity>
       </View>
     </View>
   );
