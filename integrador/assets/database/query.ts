@@ -1,4 +1,4 @@
-import { getDB } from './db';
+import { getDB, setupIndexedDB } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
 export const insertUsuario = async (usuario: Usuario): Promise<number> => {
@@ -7,12 +7,13 @@ export const insertUsuario = async (usuario: Usuario): Promise<number> => {
 };
 
 export const validarUsuario = async (email: string, password: string): Promise<boolean> => {
+  await setupIndexedDB();
   const db = await getDB();
-  const tx = db.transaction('usuarios', 'readonly');
-  const store = tx.objectStore('usuarios');
+  const tx = db.transaction('Usuario', 'readonly');
+  const store = tx.objectStore('Usuario');
   const allUsers = await store.getAll();
-
-  return allUsers.some(user => user.mail === email && user.password === password);
+  console.log(allUsers);
+  return allUsers.some(user => user.mail === email && user.contrasena === password);
 };
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {

@@ -2,17 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { validarUsuario } from '../assets/database/query';
-import { setupIndexedDB } from '../assets/database/db'; // Assuming you have a setup function for IndexedDB
+
 export default function Login() {
   const [mail, setMail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
-
-useEffect(() => {
-  setupIndexedDB()
-}, []);
 
   const handleLogin = async () => {
     if (!mail || !password) {
@@ -29,7 +25,7 @@ useEffect(() => {
         console.log("Usuario registrado.")
         navigation.navigate('Home');
       } else {
-        setError("Usuario no registrado.");
+        setError("Usuario no registrado, intente nuevamente.");
       }
     } catch (err) {
       console.error("Error al validar usuario:", err);

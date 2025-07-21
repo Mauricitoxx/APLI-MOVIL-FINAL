@@ -32,10 +32,10 @@ export const setupIndexedDB = async (): Promise<void> => {
       }
       const expectedStores = ['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'];
         for (const storeName of expectedStores) {
-            if (!database.objectStoreNames.contains(storeName)) {
-                throw new Error('Falta el objectStore: ${storeName}');
-  }
-}
+          if (!database.objectStoreNames.contains(storeName)) {
+            throw new Error('Falta el objectStore: ${storeName}');
+          }
+        }
     }
   });
 

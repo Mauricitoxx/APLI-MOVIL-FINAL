@@ -1,7 +1,16 @@
+import { getDB, setupIndexedDB } from '@/assets/database/db';
+import { useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-// Assuming you have a setup function for IndexedDB
-export default function IndexScreen() {
 
+useEffect(() => {
+  const init = async () => {
+    await setupIndexedDB();
+    console.log('Object stores disponibles:', Array.from((await getDB()).objectStoreNames));
+  };
+  init();
+}, []);
+
+export default function IndexScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>WORDLE</Text>
