@@ -1,20 +1,43 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useEffect } from 'react';
+import { validarUsuario, initializeDatabase } from '../database';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [mail, setMail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigation = useNavigation();
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    if (!email || !password) {
+  useEffect(() => {
+    initializeDatabase();
+  }, []);
+
+  const handleLogin = async () => {
+    if (!mail || !password) {
       setError('Completa todos los campos');
       return;
     }
-    // Aquí iría la lógica de login
+
+    setLoading(true);
     setError('');
+
+    try {
+      const valido = await validarUsuario(mail, password);
+      if (valido) {
+        console.log("Usuario registrado.")
+        navigation.navigate('Home');
+      } else {
+        setError("Usuario no registrado.");
+      }
+    } catch (err) {
+      console.error("Error al validar usuario:", err);
+      setError("Ocurrió un error inesperado. Intenta de nuevo.");
+    }finally{
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,8 +51,8 @@ export default function Login() {
         <TextInput
           style={styles.input}
           placeholder="Ingrese su Email"
-          value={email}
-          onChangeText={setEmail}
+          value={mail}
+          onChangeText={setMail}
           autoCapitalize="none"
         />
         <TextInput
@@ -41,7 +64,9 @@ export default function Login() {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Pressable style={styles.button} onPress={handleLogin}>
-          <Text style={styles.buttonText}>Ingresar</Text>
+          <Text style={styles.buttonText}>
+            {loading ? "Ingresando..." : "Ingresar"}
+          </Text>
         </Pressable>
         <Pressable onPress={() => navigation.navigate('Register')}>
           <Text style={styles.link}>
