@@ -1,8 +1,7 @@
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-
+// Assuming you have a setup function for IndexedDB
 export default function IndexScreen() {
-  const navigation = useNavigation();
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>WORDLE</Text>

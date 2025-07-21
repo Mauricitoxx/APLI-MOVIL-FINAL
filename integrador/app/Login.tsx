@@ -1,38 +1,25 @@
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { useEffect } from 'react';
-import { validarUsuario, initializeDatabase } from '../database';
-
+import { validarUsuario } from '../assets/database/query';
+import { setupIndexedDB } from '../assets/database/db'; // Assuming you have a setup function for IndexedDB
 export default function Login() {
   const [mail, setMail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
-  const handleLogin = () => {
 
-  useEffect(() => {
-    initializeDatabase();
-  }, []);
+useEffect(() => {
+  setupIndexedDB()
+}, []);
 
   const handleLogin = async () => {
-
     if (!mail || !password) {
       setError('Completa todos los campos');
       return;
     }
 
-
-    const usuario = usuarioRegistrado.find(
-      (u) => u.mail === mail && u.password === password
-    );
-
-    if (usuario) {
-      setError('');
-      navigation.navigate('Home')
-    } else {
-      setError('Usuario no registrado. Por favor regístrese.');
     setLoading(true);
     setError('');
 
@@ -47,7 +34,7 @@ export default function Login() {
     } catch (err) {
       console.error("Error al validar usuario:", err);
       setError("Ocurrió un error inesperado. Intenta de nuevo.");
-    }finally{
+    } finally {
       setLoading(false);
     }
   };
@@ -76,11 +63,9 @@ export default function Login() {
         />
         {error ? <Text style={styles.error}>{error}</Text> : null}
         <Pressable style={styles.button} onPress={handleLogin}>
-            <Text style={styles.buttonText}>Iniciar sesión</Text>
           <Text style={styles.buttonText}>
             {loading ? "Ingresando..." : "Ingresar"}
           </Text>
-
         </Pressable>
         <Pressable onPress={() => navigation.navigate('Register')}>
           <Text style={styles.link}> ¿No tienes cuenta? Regístrate </Text>
@@ -167,3 +152,4 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
 });
+
