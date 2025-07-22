@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { validarUsuario } from '../assets/database/query';
+import { useUser } from '@/context/UserContext';
 
 export default function Login() {
   const [mail, setMail] = useState('');
@@ -9,31 +10,33 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigation = useNavigation();
   const [loading, setLoading] = useState(false);
+  const { setUserId } = useUser();
 
   const handleLogin = async () => {
-    if (!mail || !password) {
-      setError('Completa todos los campos');
-      return;
-    }
+  if (!mail || !password) {
+    setError('Completa todos los campos');
+    return;
+  }
 
-    setLoading(true);
-    setError('');
+  setLoading(true);
+  setError('');
 
-    try {
-      const valido = await validarUsuario(mail, password);
-      if (valido) {
-        console.log("Usuario registrado.")
-        navigation.navigate('Home');
-      } else {
-        setError("Usuario no registrado, intente nuevamente.");
-      }
-    } catch (err) {
-      console.error("Error al validar usuario:", err);
-      setError("Ocurrió un error inesperado. Intenta de nuevo.");
-    } finally {
-      setLoading(false);
+  try {
+    const usuario = await validarUsuario(mail, password);
+    if (usuario) {
+      setUserId(usuario.id!); // Guardamos el ID del usuario en contexto
+      console.log("Usuario registrado.");
+      navigation.navigate('Home');
+    } else {
+      setError("Usuario no registrado, intente nuevamente.");
     }
-  };
+  } catch (err) {
+    console.error("Error al validar usuario:", err);
+    setError("Ocurrió un error inesperado. Intenta de nuevo.");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <View style={styles.bg}>

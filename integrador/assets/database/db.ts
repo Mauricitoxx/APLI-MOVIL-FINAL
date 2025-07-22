@@ -4,11 +4,18 @@ import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 const DB_NAME = 'AppDB';
-const DB_VERSION = 2;
+const DB_VERSION = 4;
 
 export const setupIndexedDB = async (): Promise<void> => {
   dbPromise = openDB(DB_NAME, DB_VERSION, {
     upgrade(database) {
+
+      if (database.objectStoreNames.contains('Herramienta')) {
+        database.deleteObjectStore('Herramienta');
+      }
+      const storeHerramienta = database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
+      storeHerramienta.createIndex('IdUsuario', 'IdUsuario');
+
       if (!database.objectStoreNames.contains('Usuario')) {
         const store = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
         store.createIndex('mail', 'mail', { unique: true });
@@ -19,9 +26,6 @@ export const setupIndexedDB = async (): Promise<void> => {
       }
       if (!database.objectStoreNames.contains('NivelXUsuario')) {
         database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
-      }
-      if (!database.objectStoreNames.contains('Herramienta')) {
-        database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
       }
       if (!database.objectStoreNames.contains('Vida')) {
         database.createObjectStore('Vida', { keyPath: 'id', autoIncrement: true });
@@ -61,7 +65,12 @@ export const setupIndexedDB = async (): Promise<void> => {
   await insertIfEmpty('NivelXUsuario', [
     { puntaje: 10, tiempo: 60, palabra: 'ejemplo', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 }
   ]);
-  await insertIfEmpty('Herramienta', [{ tipo: 'pista', cantidad: 3, IdUsuario: 1 }]);
+  await insertIfEmpty('Herramienta', [
+    { tipo: 'pasa', cantidad: 0, IdUsuario: 1 },
+    { tipo: 'ayuda', cantidad: 0, IdUsuario: 1 },
+    { tipo: 'pasa', cantidad: 3, IdUsuario: 2 },
+    { tipo: 'ayuda', cantidad: 0, IdUsuario: 2 }
+  ]);
   await insertIfEmpty('Vida', [{ cantidad: 5, IdUsuario: 1 }]);
   await insertIfEmpty('Palabras', [{ palabra: 'ejemplo' }, { palabra: 'prueba' }]);
 
