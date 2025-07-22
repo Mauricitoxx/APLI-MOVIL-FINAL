@@ -83,7 +83,7 @@ export default function Register() {
       {showSuccess && (
         <Animated.View style={[styles.notification, { opacity: fadeAnim }]}>
           <Text style={styles.notificationText}>
-            Enhorabuena, has sido registrado de forma exitosa, ahora inicia sesión
+            Felicidades, has sido registrado de forma exitosa, ahora inicia sesión
           </Text>
         </Animated.View>
       )}
