@@ -16,6 +16,32 @@ export const validarUsuario = async (email: string, password: string): Promise<b
   return allUsers.some(user => user.mail === email && user.contrasena === password);
 };
 
+export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
+  await setupIndexedDB();
+  const db = await getDB();
+  const tx = db.transaction('Usuario', 'readwrite');
+  const store = tx.objectStore('Usuario');
+
+  const mailIndex = store.index('mail');
+  const usernameIndex = store.index('nombre_usuario');
+
+  const existeMail = await mailIndex.get(nuevoUsuario.mail);
+  if (existeMail) {
+    return { ok: false, error: 'El correo ya esta regsitrado' }
+  }
+
+  const existeUsername = await usernameIndex.get(nuevoUsuario.nombre_usuario);
+  if (existeUsername) {
+    return { ok: false, error: 'El nombre de usuario ya está en uso' };
+  }
+
+  await store.add(nuevoUsuario);
+  await tx.done;
+  return {
+    ok: true
+  };
+}
+
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
   const db = await getDB();
   return db.add('Nivel', nivel);

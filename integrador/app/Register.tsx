@@ -1,24 +1,45 @@
-import React, { useState } from 'react';
+import React, { use, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { registrarUsuario } from '@/assets/database/query';
 
 export default function Register() {
   const [name, setName] = useState('');
   const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
+  const [mail, setMail] = useState('');
   const [user, setUser] = useState('');
   const [rep_password, setRep_Password] = useState('');
-
   const [localError, setLocalError] = useState('');
   const navigation = useNavigation();
 
-  const handleRegister = () => {
-    if (!name || !password || !email || !user || !rep_password) {
+  const handleRegister = async () => {
+    if (!name || !password || !mail || !user || !rep_password) {
       setLocalError('Completa todos los campos');
       return;
     }
     setLocalError('');
-    // Aquí iría la lógica de registro
+
+    if (password !== rep_password){
+      setLocalError("Contraseñas incorrectas");
+      return;
+    }
+    setLocalError('');
+    
+    const result = await registrarUsuario({
+      nombre_completo: name,
+      nombre_usuario: user,
+      mail,
+      contrasena: password,
+      racha: 0,
+      monedas: 0,
+    })
+
+    if (!result.ok) {
+      setLocalError(result.error);
+      console.error("Error al registrar al usuario.");
+    }else{
+      navigation.navigate('Home');
+    }
   };
 
   return (
@@ -31,8 +52,8 @@ export default function Register() {
         <TextInput
           style={styles.input}
           placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
+          value={mail}
+          onChangeText={setMail}
           autoCapitalize="none"
         />
         <TextInput
