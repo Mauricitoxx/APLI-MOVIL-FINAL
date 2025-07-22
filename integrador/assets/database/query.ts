@@ -6,6 +6,24 @@ export const insertUsuario = async (usuario: Usuario): Promise<number> => {
   return db.add('Usuario', usuario);
 };
 
+//Seleccion de Palabras
+
+export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
+  const db = await getDB();
+  const tx = db.transaction('Palabras', 'readonly');
+  const store = tx.objectStore('Palabras');
+
+  const todasLasPalabras = await store.getAll();
+
+  const palabrasFiltradas = todasLasPalabras.filter(p => p.palabra.length === longitud);
+
+  if (palabrasFiltradas.length === 0) return null;
+
+  const indiceAleatorio = Math.floor(Math.random() * palabrasFiltradas.length);
+  return palabrasFiltradas[indiceAleatorio].palabra;
+}
+
+// Login y Registrar
 export const validarUsuario = async (email: string, password: string): Promise<Usuario | null> => {
   await setupIndexedDB();
   const db = await getDB();
@@ -23,28 +41,84 @@ export const validarUsuario = async (email: string, password: string): Promise<U
 export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
   await setupIndexedDB();
   const db = await getDB();
-  const tx = db.transaction('Usuario', 'readwrite');
-  const store = tx.objectStore('Usuario');
 
-  const mailIndex = store.index('mail');
-  const usernameIndex = store.index('nombre_usuario');
+  // Validaciones antes de abrir la transacción
+  const tempTx = db.transaction(['Usuario', 'Palabras'], 'readonly');
+  const usuarioStore = tempTx.objectStore('Usuario');
 
-  const existeMail = await mailIndex.get(nuevoUsuario.mail);
+  const mailIndex = usuarioStore.index('mail');
+  const usernameIndex = usuarioStore.index('nombre_usuario');
+
+  const [existeMail, existeUsername] = await Promise.all([
+    mailIndex.get(nuevoUsuario.mail),
+    usernameIndex.get(nuevoUsuario.nombre_usuario)
+  ]);
+
   if (existeMail) {
-    return { ok: false, error: 'El correo ya esta regsitrado' }
+    return { ok: false, error: 'El correo ya está registrado' };
   }
 
-  const existeUsername = await usernameIndex.get(nuevoUsuario.nombre_usuario);
   if (existeUsername) {
     return { ok: false, error: 'El nombre de usuario ya está en uso' };
   }
 
-  await store.add(nuevoUsuario);
-  await tx.done;
-  return {
-    ok: true
-  };
-}
+  const palabraInicial = await obtenerPalabraLongitud(3);
+  if (!palabraInicial) {
+    return { ok: false, error: 'No hay palabras con esa longitud en la base de datos' };
+  }
+
+  // Solo después de validar, abrimos la transacción write
+  const tx = db.transaction(['Usuario', 'NivelXUsuario', 'Herramienta', 'Vida'], 'readwrite');
+
+  try {
+    const usuarioStore = tx.objectStore('Usuario');
+    const nivelXUsuarioStore = tx.objectStore('NivelXUsuario');
+    const herramientaStore = tx.objectStore('Herramienta');
+    const vidaStore = tx.objectStore('Vida');
+
+    const idUsuario = await usuarioStore.add({
+      ...nuevoUsuario,
+      racha: 0,
+      monedas: 0
+    });
+
+    await vidaStore.add({
+      cantidad: 3,
+      IdUsuario: idUsuario
+    });
+
+    await herramientaStore.add({
+      tipo: 'pasa',
+      cantidad: 0,
+      IdUsuario: idUsuario
+    });
+
+    await herramientaStore.add({
+      tipo: 'ayuda',
+      cantidad: 0,
+      IdUsuario: idUsuario
+    });
+
+    await nivelXUsuarioStore.add({
+      puntaje: 0,
+      tiempo: 60,
+      palabra: palabraInicial,
+      intento: 0,
+      recompensa_intento: '0',
+      IdUsuario: idUsuario,
+      IdNivel: 1
+    });
+
+    await tx.done;
+    return { ok: true };
+  } catch (error) {
+    console.error('Error en transacción:', error);
+    return { ok: false, error: 'Error inesperado al registrar usuario' };
+  }
+};
+
+
+
 
 //Funciones para HOME
 
@@ -56,6 +130,8 @@ export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> 
   const index = store.index('IdUsuario')
   return await index.getAll(idUsuario)
 }
+
+
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
   const db = await getDB();
