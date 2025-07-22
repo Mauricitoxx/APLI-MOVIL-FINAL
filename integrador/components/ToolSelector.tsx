@@ -1,17 +1,38 @@
-import React, { useState } from 'react';
+import { getHerramienta } from '@/assets/database/query';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useUser } from '@/context/UserContext';
 
 export default function ToolSelector() {
   const [selected, setSelected] = useState<'pasa' | 'ayuda'>('pasa');
+  const { userId } = useUser();
+
+  const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }> ({
+    pasa: 0,
+    ayuda: 0,
+  })
+
+  useEffect(() => {
+    const fetchTools = async () => {
+      const herramientas = await getHerramienta(userId!);
+      const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
+
+      herramientas.forEach(h => {
+        contadores[h.tipo] = h.cantidad;
+      });
+
+      setCantidadHerramientas(contadores);
+    };
+
+    fetchTools();
+  }, [userId])
 
   const options = {
     pasa: {
       description: 'Ideal para cuando el nivel ya no te representa',
-      quantity: 5,/* Dato a cambiar segun tenga el usuario */
     },
     ayuda: {
       description: 'Te da una pista sobre que letra puede estar en tu palabra',
-      quantity: 3,/* Dato a cambiar segun tenga el usuario */
     },
   };
 
@@ -63,7 +84,7 @@ export default function ToolSelector() {
 
       <View style={styles.counterBox}>
         <Text style={styles.counterLabel}>Tienes:</Text>
-        <Text style={styles.counterNumber}>{options[selected].quantity}</Text>
+        <Text style={styles.counterNumber}>{cantidadHerraminetas[selected]}</Text>
       </View>
     </View>
   );

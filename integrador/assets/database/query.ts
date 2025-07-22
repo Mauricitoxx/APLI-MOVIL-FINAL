@@ -6,14 +6,18 @@ export const insertUsuario = async (usuario: Usuario): Promise<number> => {
   return db.add('Usuario', usuario);
 };
 
-export const validarUsuario = async (email: string, password: string): Promise<boolean> => {
+export const validarUsuario = async (email: string, password: string): Promise<Usuario | null> => {
   await setupIndexedDB();
   const db = await getDB();
   const tx = db.transaction('Usuario', 'readonly');
   const store = tx.objectStore('Usuario');
   const allUsers = await store.getAll();
-  console.log(allUsers);
-  return allUsers.some(user => user.mail === email && user.contrasena === password);
+
+  const user = allUsers.find(
+    user => user.mail === email && user.contrasena === password
+  );
+
+  return user ?? null;
 };
 
 export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
@@ -40,6 +44,17 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
   return {
     ok: true
   };
+}
+
+//Funciones para HOME
+
+export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> => {
+  await setupIndexedDB();
+  const db = await getDB();
+  const tx = db.transaction('Herramienta', 'readonly');
+  const store = tx.objectStore('Herramienta');
+  const index = store.index('IdUsuario')
+  return await index.getAll(idUsuario)
 }
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {

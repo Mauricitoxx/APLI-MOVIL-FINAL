@@ -5,12 +5,13 @@ import Login from './Login';
 import Register from './Register';
 import Home from './Home';
 import Shop from './Shop';
+import { UserProvider } from '@/context/UserContext';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
-
+    <UserProvider>
       <Stack.Navigator initialRouteName="Index" screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Index" component={Index} />
         <Stack.Screen name="Login" component={Login} />
@@ -18,7 +19,7 @@ export default function App() {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Shop" component={Shop} />
       </Stack.Navigator>
-    
+    </UserProvider>
   );
 }
 
