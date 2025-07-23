@@ -1,23 +1,59 @@
-import React from 'react';
+import React, { use, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
 import Countdown from '@/components/CountDown';
 import { useNavigation } from '@react-navigation/native';
+import { useUser } from '@/context/UserContext';
+import { getUsuarioPorId, getVidas } from '@/assets/database/query';
 
 
 export default function LevelScreen() {
   const navigation = useNavigation();
+  const { userId } = useUser();
+
+  const [monedas, setMonedas] = useState<number | undefined>(undefined);
+  const [vidas, setVidas] = useState<number | undefined>(undefined);
+
+  useEffect(() => {
+    const fetchVida = async () => {
+      const vidas = await getVidas(userId!);
+
+      if (vidas.length > 0) {
+        const cantidad = vidas[0].cantidad ?? 0;
+        setVidas(cantidad);
+      } else {
+        setVidas(0);
+      }
+    };
+
+    fetchVida();
+  }, [userId]);
+
+  useEffect(() => {
+    const fetchUsuario = async () => {
+      const datosUsuario = await getUsuarioPorId(userId!);
+      if (datosUsuario) {
+        setMonedas(datosUsuario.monedas);
+      } else {
+        setMonedas(0);
+      }
+    };
+
+    fetchUsuario();
+  }, [userId])
+
+
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.currency}>
-          <Text style={styles.currencyText}>💰 500</Text>
+          <Text style={styles.currencyText}>💰 {monedas ?? 'Cargando...'}</Text>
         </View>
         <View style={styles.currency}>
-          <Text style={styles.currencyText}>❤️ 2</Text>
+          <Text style={styles.currencyText}>❤️ {vidas ?? 'Cargando...'}</Text>
         </View>
       </View>
 
