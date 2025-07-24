@@ -140,6 +140,7 @@ export const getVidas = async (idUsuario: number): Promise<Vida[]> => {
   const result = await index.getAll(idUsuario);
   return result;
 }
+
 //Obtener informacion total del usuario
 export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> => {
   await setupIndexedDB();
@@ -151,7 +152,17 @@ export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> 
   const usuario = await store.get(id);
   await tx.done;
 
-  return usuario;
+  return usuario ?? null;
+}
+
+//Obtener todos los NivelXUsuario segun idUsuario
+export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuario[]> => {
+  await setupIndexedDB();
+  const db = await getDB();
+  const tx = db.transaction('NivelXUsuario', 'readonly');
+  const store = tx.objectStore('NivelXUsuario');
+  const index = store.index('IdUsuario')
+  return await index.getAll(idUsuario)
 }
 
 

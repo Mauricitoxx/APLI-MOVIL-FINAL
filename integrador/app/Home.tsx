@@ -1,19 +1,23 @@
-import React, { use, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
 import Countdown from '@/components/CountDown';
 import { useNavigation } from '@react-navigation/native';
 import { useUser } from '@/context/UserContext';
-import { getUsuarioPorId, getVidas } from '@/assets/database/query';
+import { getNivelesXUsuario, getUsuarioPorId, getVidas } from '@/assets/database/query';
+import ListLevels from '@/components/ListLevels';
+import { NivelXUsuario } from '@/assets/database/type';
 
 
-export default function LevelScreen() {
+export default function Home() {
   const navigation = useNavigation();
   const { userId } = useUser();
 
   const [monedas, setMonedas] = useState<number | undefined>(undefined);
   const [vidas, setVidas] = useState<number | undefined>(undefined);
+  const [listaNiveles, setListaNiveles] = useState<NivelXUsuario[]>([]);
+
 
   useEffect(() => {
     const fetchVida = async () => {
@@ -32,17 +36,28 @@ export default function LevelScreen() {
 
   useEffect(() => {
     const fetchUsuario = async () => {
-      const datosUsuario = await getUsuarioPorId(userId!);
-      if (datosUsuario) {
-        setMonedas(datosUsuario.monedas);
-      } else {
+      try {
+        const datosUsuario = await getUsuarioPorId(userId!);
+        setMonedas(datosUsuario?.monedas ?? 0);
+      } catch (err) {
+        console.error('Error obteniendo usuario:', err);
         setMonedas(0);
       }
     };
-
     fetchUsuario();
-  }, [userId])
+  }, [userId]);
 
+  useEffect(() => {
+    const fetchNiveles = async () => {
+      try {
+        const niveles = await getNivelesXUsuario(userId!);
+        setListaNiveles(niveles);
+      } catch (err) {
+        console.error('Error obteniendo usuario:', err);
+      }
+    };
+    fetchNiveles();
+  }, [userId]);
 
 
   return (
@@ -58,24 +73,11 @@ export default function LevelScreen() {
       </View>
 
       {/* Niveles */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Niveles</Text>
-        <View style={styles.levelsRow}>
-          <TouchableOpacity style={styles.levelComplete}><Text style={styles.levelText}>Nivel Completo</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.levelStart}><Text style={styles.levelText}>Nivel Para Jugar</Text></TouchableOpacity>
-          <TouchableOpacity style={styles.levelIncomplete}><Text style={styles.levelText}>Nivel No Disponible</Text></TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Puntaje y tiempo */}
-      <View style={styles.scoreRow}>
-        <View style={styles.scoreBox}>
-          <Text style={styles.scoreLabel}>Mejor puntaje</Text>
-          <Text style={styles.scoreValue}>Puntaje</Text>
-          <Text style={styles.scoreLabel}>Mejor tiempo</Text>
-          <Text style={styles.scoreValue}>Tiempo</Text>
-        </View>
-      </View>
+      <ListLevels
+        niveles={listaNiveles}
+        setNiveles={setListaNiveles}
+        navigation={navigation}
+      />
 
       {/* Próxima vida */}
       <View style={styles.nextLifeBox}>
@@ -140,57 +142,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 20,
     marginBottom: 6,
-  },
-  levelsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  levelComplete: {
-    backgroundColor: '#2ecc71',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginRight: 4,
-  },
-  levelStart: {
-    backgroundColor: '#f1c40f',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginRight: 4,
-  },
-  levelIncomplete: {
-    backgroundColor: '#888',
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-  },
-  levelText: {
-    color: '#000',
-    fontWeight: 'bold',
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    marginBottom: 10,
-  },
-  scoreBox: {
-    flex: 1,
-    backgroundColor: '#222',
-    padding: 10,
-    borderRadius: 8,
-    marginRight: 6,
-    marginTop: 5,
-    marginBottom: 5,
-  },
-  scoreLabel: {
-    color: '#ccc',
-    fontSize: 12,
-  },
-  scoreValue: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
   },
   imageBox: {
     width: 100,

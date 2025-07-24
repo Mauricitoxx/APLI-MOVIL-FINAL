@@ -5,9 +5,12 @@ import Login from './Login';
 import Register from './Register';
 import Home from './Home';
 import Shop from './Shop';
-import { UserProvider } from '@/context/UserContext';
+import type { RootStackParamList } from './Game'; 
 
-const Stack = createNativeStackNavigator();
+import { UserProvider } from '@/context/UserContext';
+import Game from './Game';
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
   return (
@@ -18,6 +21,7 @@ export default function App() {
         <Stack.Screen name="Register" component={Register} />
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Shop" component={Shop} />
+        <Stack.Screen name="Game" component={Game} />
       </Stack.Navigator>
     </UserProvider>
   );
