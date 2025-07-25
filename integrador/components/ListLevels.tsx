@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Button } from 'react-native';
 import { NivelXUsuario } from '@/assets/database/type';
+import { insertNivelXUsuario } from '@/assets/database/query';
+import { useUser } from '@/context/UserContext';
 
 interface Props {
   niveles: NivelXUsuario[];
@@ -9,9 +11,19 @@ interface Props {
 }
 
 const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
-
   const [modalVisible, setModalVisible] = useState(false);
   const [nivelSeleccionado, setNivelSeleccionado] = useState<NivelXUsuario | null>(null);
+  const { userId } = useUser();
+
+  const nivelesUsuario = niveles.filter(n => n.IdUsuario === userId);
+  const nivelesOrdenados = [...nivelesUsuario].sort((a, b) => a.IdNivel - b.IdNivel);
+
+  useEffect(() => {
+    const nivelesGuardados = localStorage.getItem('nivelesUsuario');
+    if (nivelesGuardados) {
+      setNiveles(JSON.parse(nivelesGuardados));
+    }
+  }, [setNiveles]);
 
   const handleSeleccionarNivel = (nivel: NivelXUsuario) => {
     const disponible = true;
@@ -21,25 +33,35 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
     }
   };
 
-  const confirmarYJugar = () => {
+  const confirmarYJugar = async () => {
     if (!nivelSeleccionado) return;
 
     setModalVisible(false);
-    navigation.navigate('Game', {
-    nivel: nivelSeleccionado,
-      onResultado: (nivelActualizado: NivelXUsuario | null) => {
-        if (nivelActualizado) {
-          const nuevosNiveles = niveles.map(n =>
-            n.IdNivel === nivelActualizado.IdNivel
-              ? nivelActualizado
-              : n
-          );
-          setNiveles(nuevosNiveles);
-        }
-      },
-    });
-  }
 
+    navigation.navigate('Game', {
+      nivel: nivelSeleccionado,
+      onResultado: async (nivelActualizado: NivelXUsuario | null) => {
+        if (!nivelActualizado) return;
+
+        const nuevosNiveles = niveles.map(n =>
+          n.IdNivel === nivelActualizado.IdNivel ? nivelActualizado : n
+        );
+
+        const siguienteId = nivelActualizado.IdNivel + 1;
+        const yaExisteSiguiente = niveles.some(n =>
+          n.IdNivel === siguienteId && n.IdUsuario === nivelActualizado.IdUsuario
+        );
+
+        if (!yaExisteSiguiente) {
+          const nuevoNivel = await insertNivelXUsuario(nivelActualizado.IdUsuario);
+          nuevosNiveles.push(nuevoNivel);
+        }
+
+        nuevosNiveles.sort((a, b) => a.IdNivel - b.IdNivel);
+        setNiveles(nuevosNiveles);
+      }
+    });
+  };
 
   const renderItem = ({ item, index }) => {
     const nivelAnterior = index > 0 ? niveles[index - 1] : null;
@@ -64,20 +86,14 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
         <Text style={styles.title}>Nivel {index + 1}</Text>
         <Text>Puntaje: {item.puntaje}</Text>
         <Text>Tiempo: {item.tiempo}</Text>
-        {completado && <Text style={{ color: 'green' }}></Text>}
-        {bloqueado && <Text style={{ color: 'gray' }}></Text>}
-        {!completado && !bloqueado && (
-          <Text style={{ color: 'blue' }}></Text>
-        )}
       </TouchableOpacity>
     );
   };
 
-    const nivelesOrdenados = [...niveles].sort((a, b) => a.IdNivel - b.IdNivel);
   return (
-    <>
+    <View style={styles.container}>
       <FlatList
-        horizontal={true}
+        horizontal
         showsHorizontalScrollIndicator={false}
         data={nivelesOrdenados}
         keyExtractor={(item) => item.IdNivel.toString()}
@@ -105,19 +121,23 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
           </View>
         </View>
       </Modal>
-    </>
+    </View>
   );
 };
 
-
 const styles = StyleSheet.create({
+  container: {
+    maxHeight: 130,
+    paddingVertical: 10,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+    marginBottom: 15,
+  },
   listcontainer: {
     paddingHorizontal: 10,
   },
   card: {
     width: 110,
     height: 100,
-    textAlign:'left',
     marginRight: 12,
     borderRadius: 12,
     padding: 10,
@@ -149,29 +169,29 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   modalOverlay: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-modalContent: {
-  backgroundColor: 'white',
-  padding: 20,
-  borderRadius: 10,
-  width: 300,
-  alignItems: 'center',
-},
-modalText: {
-  fontSize: 16,
-  marginBottom: 20,
-  textAlign: 'center',
-},
-modalButtons: {
-  flexDirection: 'row',
-  justifyContent: 'space-between',
-  width: '100%',
-  gap: 10,
-},
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    width: 300,
+    alignItems: 'center',
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 10,
+  },
 });
 
 export default ListLevels;
