@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
 import Countdown from '@/components/CountDown';
@@ -18,6 +18,18 @@ export default function Home() {
   const [vidas, setVidas] = useState<number | undefined>(undefined);
   const [listaNiveles, setListaNiveles] = useState<NivelXUsuario[]>([]);
 
+  const [selected, setSelected] = useState<'verde' | 'amarilla' | 'gris'>('verde');
+  const options = {
+    verde: {
+      description: 'VERDE significa que la letra esta en la palabra y en la posicion CORRECTA'
+    },
+    amarilla: {
+      description: 'AMARILLO significa que la letra esta presente en la palabra, pero en la posicion INCORRECTA'
+    },
+    gris: {
+      description: 'GRIS significa que la letra NO esta presente en la palabra'
+    }
+  }
 
   useEffect(() => {
     const fetchVida = async () => {
@@ -60,6 +72,11 @@ export default function Home() {
   }, [userId]);
 
 
+  function capitalize(color: string) {
+    return color.charAt(0).toUpperCase() + color.slice(1);
+  }
+
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -73,6 +90,7 @@ export default function Home() {
       </View>
 
       {/* Niveles */}
+      <Text style={styles.sectionTitle}>Niveles</Text>
       <ListLevels
         niveles={listaNiveles}
         setNiveles={setListaNiveles}
@@ -84,8 +102,54 @@ export default function Home() {
         <Text style={styles.nextLifeText}><Countdown /></Text>
       </View>
 
-      {/* Saltos de nivel */}
+      {/* Herramientas */}
       <ToolSelector />
+
+      {/* Como Jugar */}
+      <View style={styles.rulesContainer}>
+        <Text style={styles.rulesTitle}>¿Cómo Jugar?</Text>
+        <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo numero de nivel entre usuarios.</Text>
+        <Text style={styles.rulesSubtitle}>Cada intento debe ser una palabra válida. En cada ronda el juego pinta cada letra de un color indicando si esa letra se encuentra o no en la palabra y si se encuentra en la posición correcta.</Text>
+
+        <View style={styles.rulesButtons}>
+          {['verde', 'amarilla', 'gris'].map((color) => (
+            <TouchableOpacity
+              key={color}
+              style={[
+                styles.ruleButton,
+                selected === color && styles.ruleButtonSelected,
+              ]}
+              onPress={() => setSelected(color)}
+            >
+              <Text
+                style={[
+                  styles.ruleButtonText,
+                  selected === color && styles.ruleButtonTextSelected,
+                ]}
+              >
+                {`Letra ${capitalize(color)}`}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.ruleDescriptionBox}>
+          <Image
+              source={
+                selected === 'verde'
+                  ? require('../images/verdeLetra.png')
+                  : selected === 'amarilla'
+                  ? require('../images/amarillaLetra.png')
+                  : require('../images/grisLetra.png')
+              }
+              style={styles.ruleImage}
+              resizeMode="contain"
+          />
+
+          <Text style={styles.ruleDescription}>{options[selected].description}</Text>
+        </View>
+      </View>
+
 
       {/* Botón jugar */}
       <TouchableOpacity style={styles.playButton}>
@@ -164,29 +228,69 @@ const styles = StyleSheet.create({
     color: '#fff',
     textAlign: 'center',
   },
-  jumpRow: {
-    flexDirection: 'row',
-    marginBottom: 10,
+  rulesContainer: {
+  backgroundColor: '#1c1c1e',
+  borderRadius: 12,
+  padding: 16,
+  margin: 12,
+  borderWidth: 1,
+  borderColor: '#333',
   },
-  jumpBox: {
-    flex: 1,
-    backgroundColor: '#222',
-    padding: 10,
-    borderRadius: 8,
-    marginRight: 6,
-  },
-  jumpLabel: {
-    backgroundColor: '#2ecc71',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 6,
-    borderRadius: 6,
-    color: '#000',
+  rulesTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 4,
+    color: '#00ff88',
+    textAlign: 'center',
+    marginBottom: 12,
   },
-  jumpText: {
+  rulesSubtitle: {
+    fontSize: 15,
+    color: '#aaa',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  rulesButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 12,
+  },
+  ruleButton: {
+    paddingVertical: 9,
+    paddingHorizontal: 16,
+    backgroundColor: '#333',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  ruleButtonSelected: {
+    backgroundColor: '#00ff88',
+  },
+  ruleButtonText: {
     color: '#ccc',
-    fontSize: 12,
+    fontWeight: '500',
+  },
+  ruleButtonTextSelected: {
+    color: '#000',
+    fontWeight: '700',
+  },
+  ruleDescriptionBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#222',
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 10,
+  },
+  ruleImage: {
+    width: 70,
+    height: 70,
+    marginRight: 10,
+    borderRadius: 10,
+  },
+  ruleDescription: {
+    flex: 1,
+    fontSize: 16,
+    color: '#fff',
+    textAlign: 'center',
   },
   counterBox: {
     backgroundColor: '#222',
