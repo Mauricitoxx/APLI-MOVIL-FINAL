@@ -7,7 +7,6 @@ export const insertUsuario = async (usuario: Usuario): Promise<number> => {
 };
 
 //Seleccion de Palabras
-
 export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
   const db = await getDB();
   const tx = db.transaction('Palabras', 'readonly');
@@ -118,10 +117,8 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
 };
 
 
-
-
 //Funciones para HOME
-
+//Obtener informacion total de las herramientas que tiene un usuario
 export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> => {
   await setupIndexedDB();
   const db = await getDB();
@@ -130,7 +127,73 @@ export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> 
   const index = store.index('IdUsuario')
   return await index.getAll(idUsuario)
 }
+//Obtener informacion total de las vidas que tiene un usuario
+export const getVidas = async (idUsuario: number): Promise<Vida[]> => {
+  await setupIndexedDB();
+  const db = await getDB();
 
+  const tx = db.transaction('Vida', 'readonly');
+  const store = tx.objectStore('Vida');
+
+  const index = store.index('IdUsuario');
+  const result = await index.getAll(idUsuario);
+  return result;
+}
+
+//Obtener informacion total del usuario
+export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> => {
+  await setupIndexedDB();
+  const db = await getDB();
+
+  const tx = db.transaction('Usuario', 'readonly');
+  const store = tx.objectStore('Usuario');
+
+  const usuario = await store.get(id);
+  await tx.done;
+
+  return usuario ?? null;
+}
+
+//Obtener todos los NivelXUsuario segun idUsuario
+export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuario[]> => {
+  await setupIndexedDB();
+  const db = await getDB();
+  const tx = db.transaction('NivelXUsuario', 'readonly');
+  const store = tx.objectStore('NivelXUsuario');
+  const index = store.index('IdUsuario')
+  return await index.getAll(idUsuario)
+}
+
+
+//Niveles
+//Crear un nuevo nivel por usuario
+export const insertNivelXUsuario = async (idUsuario: number) => {
+  await setupIndexedDB();
+  const db = await getDB();
+  const nivelesUsuario = await db.getAllFromIndex('NivelXUsuario', 'IdUsuario', idUsuario);
+  const maxNivel = nivelesUsuario.length > 0
+    ? Math.max(...nivelesUsuario.map(n => n.IdNivel))
+    : 0;
+  const nuevoNivel = maxNivel + 1;
+
+  const longitudPalabra = 3 + Math.floor(nuevoNivel / 5);
+
+  const palabra = await obtenerPalabraLongitud(longitudPalabra);
+
+  const nuevoRegistro: NivelXUsuario = {
+    puntaje: 0,
+    tiempo: 0,
+    palabra,
+    intento: 0,
+    recompensa_intento: '',
+    IdUsuario: idUsuario,
+    IdNivel: nuevoNivel,
+  };
+
+  const idGenerado = await db.add('NivelXUsuario', nuevoRegistro);
+  return {...nuevoRegistro, id: idGenerado as number}
+
+}
 
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
@@ -141,11 +204,6 @@ export const insertNivel = async (nivel: Nivel): Promise<number> => {
 export const getNiveles = async (): Promise<Nivel[]> => {
   const db = await getDB();
   return db.getAll('Nivel');
-};
-
-export const insertNivelXUsuario = async (registro: NivelXUsuario): Promise<number> => {
-  const db = await getDB();
-  return db.add('NivelXUsuario', registro);
 };
 
 export const insertHerramienta = async (herramienta: Herramienta): Promise<number> => {

@@ -4,7 +4,7 @@ import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 const DB_NAME = 'AppDB';
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 export const setupIndexedDB = async (): Promise<void> => {
   dbPromise = openDB(DB_NAME, DB_VERSION, {
@@ -18,6 +18,8 @@ export const setupIndexedDB = async (): Promise<void> => {
     const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
     usuarioStore.createIndex('mail', 'mail', { unique: true });
     usuarioStore.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
+    usuarioStore.createIndex('id', 'id', { unique: true });
+
 
     database.createObjectStore('Nivel', { keyPath: 'id', autoIncrement: true });
 
