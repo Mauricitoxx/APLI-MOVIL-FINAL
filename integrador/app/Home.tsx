@@ -8,6 +8,7 @@ import { useUser } from '@/context/UserContext';
 import { getNivelesXUsuario, getUsuarioPorId, getVidas } from '@/assets/database/query';
 import ListLevels from '@/components/ListLevels';
 import { NivelXUsuario } from '@/assets/database/type';
+import Footer from '@/components/Footer'; 
 
 
 export default function Home() {
@@ -21,13 +22,13 @@ export default function Home() {
   const [selected, setSelected] = useState<'verde' | 'amarilla' | 'gris'>('verde');
   const options = {
     verde: {
-      description: 'VERDE significa que la letra esta en la palabra y en la posicion CORRECTA'
+      description: 'VERDE significa que la letra está en la palabra y en la posición CORRECTA'
     },
     amarilla: {
-      description: 'AMARILLO significa que la letra esta presente en la palabra, pero en la posicion INCORRECTA'
+      description: 'AMARILLO significa que la letra está presente en la palabra, pero en la posición INCORRECTA'
     },
     gris: {
-      description: 'GRIS significa que la letra NO esta presente en la palabra'
+      description: 'GRIS significa que la letra NO está presente en la palabra'
     }
   }
 
@@ -108,7 +109,7 @@ export default function Home() {
       {/* Como Jugar */}
       <View style={styles.rulesContainer}>
         <Text style={styles.rulesTitle}>¿Cómo Jugar?</Text>
-        <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo numero de nivel entre usuarios.</Text>
+        <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo número de nivel entre usuarios.</Text>
         <Text style={styles.rulesSubtitle}>Cada intento debe ser una palabra válida. En cada ronda el juego pinta cada letra de un color indicando si esa letra se encuentra o no en la palabra y si se encuentra en la posición correcta.</Text>
 
         <View style={styles.rulesButtons}>
@@ -156,24 +157,7 @@ export default function Home() {
         <Text style={styles.playText}>Jugar</Text>
       </TouchableOpacity>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="home" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.footerButton}
-          onPress={() => navigation.navigate('Shop')}
-        >
-          <Feather name="shopping-cart" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="play" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="user" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <Footer />
     </View>
   );
 }
@@ -229,12 +213,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   rulesContainer: {
-  backgroundColor: '#1c1c1e',
-  borderRadius: 12,
-  padding: 16,
-  margin: 12,
-  borderWidth: 1,
-  borderColor: '#333',
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: 16,
+    margin: 12,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   rulesTitle: {
     fontSize: 20,
@@ -321,23 +305,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
-  },
-  footer: {
-    backgroundColor: '#7a4ef2',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
-    borderRadius: 20,
-    position: 'absolute',
-    bottom: 30,
-    left: 15,
-    right: 15,
-  },
-  footerButton: {
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#fff',
-    fontWeight: 'bold',
   },
 });

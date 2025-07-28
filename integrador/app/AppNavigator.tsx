@@ -9,6 +9,7 @@ import type { RootStackParamList } from './Game';
 
 import { UserProvider } from '@/context/UserContext';
 import Game from './Game';
+import LevelsScreen from './Levels';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -22,6 +23,8 @@ export default function App() {
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Shop" component={Shop} />
         <Stack.Screen name="Game" component={Game} />
+        <Stack.Screen name="Levels" component={LevelsScreen} />
+        
       </Stack.Navigator>
     </UserProvider>
   );
