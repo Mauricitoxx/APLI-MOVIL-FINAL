@@ -6,7 +6,7 @@ import Register from './Register';
 import Home from './Home';
 import Shop from './Shop';
 import { UserProvider } from '@/context/UserContext';
-
+import User from './User';
 const Stack = createNativeStackNavigator();
 
 export default function App() {
@@ -18,6 +18,7 @@ export default function App() {
         <Stack.Screen name="Register" component={Register} />
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Shop" component={Shop} />
+        <Stack.Screen name="User" component={User} />
       </Stack.Navigator>
     </UserProvider>
   );
