@@ -4,43 +4,38 @@ import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 const DB_NAME = 'AppDB';
-const DB_VERSION = 4;
+const DB_VERSION = 7;
 
 export const setupIndexedDB = async (): Promise<void> => {
   dbPromise = openDB(DB_NAME, DB_VERSION, {
     upgrade(database) {
-
-      if (database.objectStoreNames.contains('Herramienta')) {
-        database.deleteObjectStore('Herramienta');
-      }
-      const storeHerramienta = database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
-      storeHerramienta.createIndex('IdUsuario', 'IdUsuario');
-
-      if (!database.objectStoreNames.contains('Usuario')) {
-        const store = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
-        store.createIndex('mail', 'mail', { unique: true });
-        store.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
-      }
-      if (!database.objectStoreNames.contains('Nivel')) {
-        database.createObjectStore('Nivel', { keyPath: 'id', autoIncrement: true });
-      }
-      if (!database.objectStoreNames.contains('NivelXUsuario')) {
-        database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
-      }
-      if (!database.objectStoreNames.contains('Vida')) {
-        database.createObjectStore('Vida', { keyPath: 'id', autoIncrement: true });
-      }
-      if (!database.objectStoreNames.contains('Palabras')) {
-        const store = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
-        store.createIndex('palabra', 'palabra', { unique: true });
-      }
-      const expectedStores = ['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'];
-        for (const storeName of expectedStores) {
-          if (!database.objectStoreNames.contains(storeName)) {
-            throw new Error('Falta el objectStore: ${storeName}');
-          }
-        }
+    // Elimina todos los object stores existentes
+    for (const name of Array.from(database.objectStoreNames)) {
+      database.deleteObjectStore(name);
     }
+
+    // Crear stores de cero
+    const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
+    usuarioStore.createIndex('mail', 'mail', { unique: true });
+    usuarioStore.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
+    usuarioStore.createIndex('id', 'id', { unique: true });
+
+
+    database.createObjectStore('Nivel', { keyPath: 'id', autoIncrement: true });
+
+    const nivelXUsuarioStore = database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
+    nivelXUsuarioStore.createIndex('IdUsuario', 'IdUsuario');
+
+    const herramientaStore = database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
+    herramientaStore.createIndex('IdUsuario', 'IdUsuario');
+
+    const vidaStore = database.createObjectStore('Vida', { keyPath: 'id', autoIncrement: true });
+    vidaStore.createIndex('IdUsuario', 'IdUsuario');
+
+    const palabrasStore = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
+    palabrasStore.createIndex('palabra', 'palabra', { unique: true });
+  }
+
   });
 
   const db = await dbPromise;
@@ -62,9 +57,11 @@ export const setupIndexedDB = async (): Promise<void> => {
   ]);
 
   await insertIfEmpty('Nivel', [{ recompensa: 100 }, { recompensa: 200 }]);
+
   await insertIfEmpty('NivelXUsuario', [
     { puntaje: 10, tiempo: 60, palabra: 'ejemplo', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 }
   ]);
+
   await insertIfEmpty('Herramienta', [
     { tipo: 'pasa', cantidad: 0, IdUsuario: 1 },
     { tipo: 'ayuda', cantidad: 0, IdUsuario: 1 },
@@ -72,8 +69,46 @@ export const setupIndexedDB = async (): Promise<void> => {
     { tipo: 'ayuda', cantidad: 0, IdUsuario: 2 }
   ]);
   await insertIfEmpty('Vida', [{ cantidad: 5, IdUsuario: 1 }]);
-  await insertIfEmpty('Palabras', [{ palabra: 'ejemplo' }, { palabra: 'prueba' }]);
 
+  await insertIfEmpty('Palabras', [
+    { palabra: 'ejemplo' }, 
+    { palabra: 'prueba' },
+    { palabra: 'sol' },
+    { palabra: 'mar' },
+    { palabra: 'pez' },
+    { palabra: 'luz' },
+    { palabra: 'ojo' },
+    { palabra: 'voz' },
+    { palabra: 'te' },
+    { palabra: 'pan' },
+    { palabra: 'rio' },
+    { palabra: 'sal' },
+    { palabra: 'casa' },
+    { palabra: 'luna' },
+    { palabra: 'flor' },
+    { palabra: 'toro' },
+    { palabra: 'piel' },
+    { palabra: 'cine' },
+    { palabra: 'tren' },
+    { palabra: 'mesa' },
+    { palabra: 'vino' },
+    { palabra: 'cielo' },
+    { palabra: 'perro' },
+    { palabra: 'planta' },
+    { palabra: 'nube' },
+    { palabra: 'sueño' },
+    { palabra: 'papel' },
+    { palabra: 'reloj' },
+    { palabra: 'playa' },
+    { palabra: 'viento' },
+    { palabra: 'amigo' },
+    { palabra: 'bosque' },
+    { palabra: 'calor' },
+    { palabra: 'camino' },
+    { palabra: 'tierra' },
+    { palabra: 'mirar' },
+    { palabra: 'mundo' },
+  ]);
   await tx.done;
 };
 
