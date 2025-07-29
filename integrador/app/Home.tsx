@@ -170,7 +170,9 @@ export default function Home() {
         <TouchableOpacity style={styles.footerButton}>
           <Feather name="play" size={24} color="#fff" />
         </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
+        <TouchableOpacity 
+          style={styles.footerButton}
+          onPress={() => navigation.navigate('User')}>
           <Feather name="user" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
