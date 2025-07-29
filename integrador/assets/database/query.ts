@@ -165,7 +165,7 @@ export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuar
 }
 
 
-//Niveles
+//Niveles y Juego
 //Crear un nuevo nivel por usuario
 export const insertNivelXUsuario = async (idUsuario: number) => {
   await setupIndexedDB();
@@ -194,6 +194,37 @@ export const insertNivelXUsuario = async (idUsuario: number) => {
   return {...nuevoRegistro, id: idGenerado as number}
 
 }
+
+//Modificar vidas cuando el jugador pierde
+export const restarVida = async (idUsuario: number) => {
+  await setupIndexedDB();
+  const db = await getDB();
+
+  const tx = db.transaction('Vida', 'readwrite');
+  const store = tx.objectStore('Vida');
+  const index = store.index('IdUsuario');
+
+  // Envolver en Promise para obtener la vida
+  const vida: Vida = await new Promise((resolve, reject) => {
+    const request = index.get(idUsuario);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  if (!idUsuario || typeof idUsuario !== 'number') {
+    console.error('idUsuario inválido:', idUsuario);
+    return;
+  }
+
+  // Si hay vida suficiente, restar 1
+  if (vida?.cantidad! > 0) {
+    vida.cantidad! -= 1;
+    store.put(vida);
+    console.log("Se retiro una vida");
+  } else {
+    console.warn('El usuario no tiene vidas disponibles');
+  }
+};
 
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
@@ -226,6 +257,7 @@ export const getPalabras = async (): Promise<Palabras[]> => {
   return db.getAll('Palabras');
 };
 
+// Tienda
 // Compra de Vida
 export const comprarVida = async (idUsuario: number, costo: number): Promise<{ ok: boolean; error?: string }> => {
   const db = await getDB();

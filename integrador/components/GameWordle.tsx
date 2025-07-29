@@ -1,3 +1,5 @@
+import { restarVida } from "@/assets/database/query";
+import { useUser } from "@/context/UserContext";
 import React, {useState} from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 
@@ -10,6 +12,7 @@ const GameWordle: React.FC<Props> = ({ palabraNivel, onGameEnd }) => {
     const longitud = palabraNivel.length;
     const intentoMax = 5;
     const [inicioJuego] = useState(Date.now());
+    const { userId } = useUser();
 
     const [intentoActual, setIntentoActual] = useState(0);
     const [letrasIngresadas, setLetrasIngresadas] = useState<string[][]>(
@@ -32,13 +35,11 @@ const GameWordle: React.FC<Props> = ({ palabraNivel, onGameEnd }) => {
         if (intento === palabraNivel.toLowerCase()) {
             const finJuego = Date.now();
             const tiempoEnSegundos = Math.floor((finJuego - inicioJuego) / 1000);
-            const puntos = 100 - intentoActual * 20; // o cualquier lógica que quieras
+            const puntos = 100 - intentoActual * 20; 
 
-            // Llamás a onGameEnd pasando si ganó y la info adicional
             setTimeout(() => {
                 mostrarModal(`¡Correcto! 
                     Obtuviste ${puntos} puntos en ${tiempoEnSegundos} segundos.`);
-                // Guardar temporalmente estos valores para usarlos en cerrarModal
                 setResultadoFinal({ ganado: true, puntos, tiempo: tiempoEnSegundos });
             }, 100);
             return;
@@ -48,6 +49,7 @@ const GameWordle: React.FC<Props> = ({ palabraNivel, onGameEnd }) => {
             setTimeout(() => {
                 mostrarModal(`¡Has perdido!`);
                 setResultadoFinal({ ganado: false });
+                restarVida(userId!).catch(err => console.error('Error al restar vida:', err));
             }, 100);
             return;
         }
