@@ -225,3 +225,52 @@ export const getPalabras = async (): Promise<Palabras[]> => {
   const db = await getDB();
   return db.getAll('Palabras');
 };
+
+// Compra de Vida
+export const comprarVida = async (idUsuario: number, costo: number): Promise<{ ok: boolean; error?: string }> => {
+  const db = await getDB();
+
+  const tx = db.transaction(['Usuario', 'Vida'], 'readwrite');
+  const usuarioStore = tx.objectStore('Usuario');
+  const vidaStore = tx.objectStore('Vida');
+
+  const usuario = await usuarioStore.get(idUsuario);
+  if (!usuario || usuario.monedas < costo) return { ok: false, error: 'Fondos insuficientes' };
+
+  usuario.monedas -= costo;
+  await usuarioStore.put(usuario);
+
+  const vidas = await vidaStore.index('IdUsuario').getAll(idUsuario);
+  if (vidas.length > 0) {
+    vidas[0].cantidad += 1;
+    await vidaStore.put(vidas[0]);
+  }
+
+  await tx.done;
+  return { ok: true };
+};
+
+// Compra de Herramienta
+export const comprarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda', costo: number): Promise<{ ok: boolean; error?: string }> => {
+  const db = await getDB();
+
+  const tx = db.transaction(['Usuario', 'Herramienta'], 'readwrite');
+  const usuarioStore = tx.objectStore('Usuario');
+  const herramientaStore = tx.objectStore('Herramienta');
+
+  const usuario = await usuarioStore.get(idUsuario);
+  if (!usuario || usuario.monedas < costo) return { ok: false, error: 'Fondos insuficientes' };
+
+  usuario.monedas -= costo;
+  await usuarioStore.put(usuario);
+
+  const herramientas = await herramientaStore.index('IdUsuario').getAll(idUsuario);
+  const herramienta = herramientas.find(h => h.tipo === tipo);
+  if (herramienta) {
+    herramienta.cantidad += 1;
+    await herramientaStore.put(herramienta);
+  }
+
+  await tx.done;
+  return { ok: true };
+};
