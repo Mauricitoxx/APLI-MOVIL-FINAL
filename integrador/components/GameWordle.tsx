@@ -273,31 +273,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.7)',
     padding: 16,
-},
-modalContent: {
+  },
+  modalContent: {
     backgroundColor: '#1e1e1f',
     borderRadius: 12,
     padding: 24,
     width: '90%',
     maxWidth: 400,
     alignItems: 'center',
-},
-modalText: {
+  },
+  modalText: {
     color: '#fff',
     fontSize: 22,
     marginBottom: 20,
     textAlign: 'center',
-},
-modalButton: {
+  },
+  modalButton: {
     backgroundColor: '#7a4ef2',
     paddingVertical: 12,
     paddingHorizontal: 30,
     borderRadius: 8,
-},
-modalButtonText: {
+  },
+  modalButtonText: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
-},
+  },
 
 });
