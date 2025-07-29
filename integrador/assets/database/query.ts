@@ -91,3 +91,40 @@ export const getPalabras = async (): Promise<Palabras[]> => {
   const db = await getDB();
   return db.getAll('Palabras');
 };
+// Agregar estas funciones al archivo db.ts
+
+// Obtener usuario por ID
+export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> => {
+  const db = await getDB();
+  return db.get('Usuario', id);
+};
+
+// Obtener estadísticas del usuario
+export const getEstadisticasUsuario = async (idUsuario: number) => {
+  const db = await getDB();
+  
+  // Obtener días de racha (simplificado)
+  const nivelesCompletados = await db.getAllFromIndex('NivelXUsuario', 'IdUsuario', idUsuario);
+  const racha = nivelesCompletados.filter(n => n.completado).length; // Ejemplo simplificado
+  
+  // Obtener puntaje más alto
+  const puntajeMaximo = nivelesCompletados.reduce((max, nivel) => 
+    nivel.puntaje > max ? nivel.puntaje : max, 0);
+  
+  return {
+    racha,
+    puntajeMaximo
+  };
+};
+
+// Actualizar usuario
+export const actualizarUsuario = async (usuario: Usuario): Promise<boolean> => {
+  try {
+    const db = await getDB();
+    await db.put('Usuario', usuario);
+    return true;
+  } catch (error) {
+    console.error("Error actualizando usuario:", error);
+    return false;
+  }
+};
