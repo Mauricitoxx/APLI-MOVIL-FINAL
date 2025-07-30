@@ -38,8 +38,7 @@ const GameWordle: React.FC<Props> = ({ palabraNivel, onGameEnd }) => {
             const puntos = 100 - intentoActual * 20; 
 
             setTimeout(() => {
-                mostrarModal(`¡Correcto! 
-                    Obtuviste ${puntos} puntos en ${tiempoEnSegundos} segundos.`);
+                mostrarModal(`¡Correcto! Obtuviste ${puntos} puntos en ${tiempoEnSegundos} segundos.`);
                 setResultadoFinal({ ganado: true, puntos, tiempo: tiempoEnSegundos });
             }, 100);
             return;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
@@ -8,6 +8,7 @@ import { useUser } from '@/context/UserContext';
 import { getNivelesXUsuario, getUsuarioPorId, getVidas } from '@/assets/database/query';
 import ListLevels from '@/components/ListLevels';
 import { NivelXUsuario } from '@/assets/database/type';
+import { useFocusEffect } from 'expo-router';
 
 
 export default function Home() {
@@ -31,20 +32,22 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
-    const fetchVida = async () => {
-      const vidas = await getVidas(userId!);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchVida = async () => {
+        const vidas = await getVidas(userId!);
 
-      if (vidas.length > 0) {
-        const cantidad = vidas[0].cantidad ?? 0;
-        setVidas(cantidad);
-      } else {
-        setVidas(0);
-      }
-    };
+        if (vidas.length > 0) {
+          const cantidad = vidas[0].cantidad ?? 0;
+          setVidas(cantidad);
+        } else {
+          setVidas(0);
+        }
+      };
 
-    fetchVida();
-  }, [userId]);
+      fetchVida();
+    }, [userId])
+  );
 
   useEffect(() => {
     const fetchUsuario = async () => {
@@ -59,23 +62,24 @@ export default function Home() {
     fetchUsuario();
   }, [userId]);
 
-  useEffect(() => {
-    const fetchNiveles = async () => {
-      try {
-        const niveles = await getNivelesXUsuario(userId!);
-        setListaNiveles(niveles);
-      } catch (err) {
-        console.error('Error obteniendo usuario:', err);
-      }
-    };
-    fetchNiveles();
-  }, [userId]);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchNiveles = async () => {
+        try {
+          const niveles = await getNivelesXUsuario(userId!);
+          setListaNiveles(niveles);
+        } catch (err) {
+          console.error('Error obteniendo niveles:', err);
+        }
+      };
 
+      fetchNiveles();
+    }, [userId])
+  );
 
   function capitalize(color: string) {
     return color.charAt(0).toUpperCase() + color.slice(1);
   }
-
 
   return (
     <View style={styles.container}>

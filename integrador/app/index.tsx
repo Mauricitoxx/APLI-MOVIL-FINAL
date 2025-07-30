@@ -1,16 +1,32 @@
 import { getDB, setupIndexedDB } from '@/assets/database/db';
-import { useEffect } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useNavigation } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-useEffect(() => {
-  const init = async () => {
-    await setupIndexedDB();
-    console.log('Object stores disponibles:', Array.from((await getDB()).objectStoreNames));
-  };
-  init();
-}, []);
 
 export default function IndexScreen() {
+  const [isDBReady, setIsDBReady] = useState(false);
+
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    const init = async () => {
+      await setupIndexedDB();
+      console.log('Object stores disponibles:', Array.from((await getDB()).objectStoreNames));
+      setIsDBReady(true);
+    };
+    init();
+  }, []);
+
+  if (!isDBReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
+
   return (
       <View style={styles.container}>
         <Text style={styles.title}>WORDLE</Text>
