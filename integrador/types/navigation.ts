@@ -6,6 +6,7 @@ export type RootStackParamList = {
   Register: undefined;
   Home: undefined;
   Shop: undefined;
+  User: undefined;
   Game: {
     nivel: NivelXUsuario;
     onResultado: (resultado: NivelXUsuario | null) => void;

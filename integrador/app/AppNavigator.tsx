@@ -5,11 +5,11 @@ import Login from './Login';
 import Register from './Register';
 import Home from './Home';
 import Shop from './Shop';
+import { UserProvider } from '@/context/UserContext';
+import User from './User';
 import Game from './Game';
 import GameScreen from './GameScreen';
-
-import { UserProvider } from '@/context/UserContext';
-import { RootStackParamList } from '../types/navigation';
+import { RootStackParamList } from '@/types/navigation';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -22,6 +22,7 @@ export default function App() {
         <Stack.Screen name="Register" component={Register} />
         <Stack.Screen name="Home" component={Home} />
         <Stack.Screen name="Shop" component={Shop} />
+        <Stack.Screen name="User" component={User} />
         <Stack.Screen name="Game" component={Game} />
         <Stack.Screen name="GameScreen" component={GameScreen} />
       </Stack.Navigator>
