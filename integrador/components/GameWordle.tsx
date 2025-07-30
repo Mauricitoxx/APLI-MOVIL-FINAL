@@ -42,7 +42,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             setTimeout( async () => {
                 mostrarModal(`¡Correcto! Obtuviste ${puntos} puntos en ${tiempoEnSegundos} segundos.`);
                 setResultadoFinal({ ganado: true, puntos, tiempo: tiempoEnSegundos });
-                await cargarDatosNivel(idNivel, puntos, tiempoEnSegundos);
+                await cargarDatosNivel(userId!, idNivel, puntos, tiempoEnSegundos);
             }, 100);
             return;
         }
@@ -51,7 +51,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             setTimeout( async () => {
                 mostrarModal(`¡Has perdido!`);
                 setResultadoFinal({ ganado: false });
-                await cargarDatosNivel(idNivel, 0, 0);
+                await cargarDatosNivel(userId!, idNivel, 0, 0);
                 await restarVida(userId!).catch(err => console.error('Error al restar vida:', err));
             }, 100);
             return;

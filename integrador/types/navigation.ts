@@ -8,7 +8,12 @@ export type RootStackParamList = {
   Shop: undefined;
   Game: {
     nivel: NivelXUsuario;
-    onResultado: (nivelActualizado: NivelXUsuario | null) => void;
+    onResultado: (resultado: NivelXUsuario | null) => void;
+    resultado?: NivelXUsuario | null;
   };
-  GameScreen: { nivel: NivelXUsuario };
+  GameScreen: { 
+    nivel: NivelXUsuario;
+    onResultado: (resultado: NivelXUsuario | null) => void;
+    resultado?: NivelXUsuario | null;
+  };
 };

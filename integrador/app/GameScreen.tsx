@@ -3,14 +3,21 @@ import { View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import GameWordle from '../components/GameWordle';
 import { RootStackParamList } from '@/types/navigation';
+import { NivelXUsuario } from '@/assets/database/type';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'GameScreen'>;
 
 const GameScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { nivel } = route.params;
+  const { nivel, onResultado } = route.params;
 
-  const handleGameEnd = (ganado: boolean, puntos?: number, tiempo?: number) => {
+  const handleGameEnd = (ganado: boolean, puntos?: number , tiempo?: number) => {
+
     console.log("Fin del juego", { ganado, puntos, tiempo });
+    
+    const resultado: NivelXUsuario = { ...nivel, puntaje: puntos ?? 0, tiempo: tiempo ?? 0, };
+    
+    onResultado(resultado);
+
     navigation.goBack();
   };
 

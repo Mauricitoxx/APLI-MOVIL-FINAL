@@ -3,7 +3,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 let dbInstance: IDBPDatabase | null = null;
 
 const DB_NAME = 'AppDB';
-const DB_VERSION = 11;
+const DB_VERSION = 12;
 
 export const setupIndexedDB = async (): Promise<void> => {
   console.log('Inicializando BD...');
@@ -26,7 +26,7 @@ export const setupIndexedDB = async (): Promise<void> => {
       if (!database.objectStoreNames.contains('NivelXUsuario')){
         const nivelXUsuarioStore = database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
         nivelXUsuarioStore.createIndex('IdUsuario', 'IdUsuario');
-        nivelXUsuarioStore.createIndex('IdNivel', 'IdNivel',  { unique: true });
+        nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
       }
 
       if (!database.objectStoreNames.contains('Herramienta')){
@@ -43,8 +43,7 @@ export const setupIndexedDB = async (): Promise<void> => {
         const palabrasStore = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
         palabrasStore.createIndex('palabra', 'palabra', { unique: true });
       }
-  }
-
+    }
   });
 
   // Insertar datos de prueba si las tablas están vacías

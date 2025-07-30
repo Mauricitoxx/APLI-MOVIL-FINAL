@@ -212,20 +212,23 @@ export const restarVida = async (idUsuario: number) => {
 };
 
 //Cargar los nuevos datos al nivel jugado
-export const cargarDatosNivel = async (idNivel: number, puntaje: number, tiempo: number) => {
-  if (!idNivel || typeof idNivel !== 'number') {
-    console.error('idNivel inválido:', idNivel);
+export const cargarDatosNivel = async (idUsuario: number, idNivel: number, puntaje: number, tiempo: number) => {
+  if (!idNivel || typeof idNivel !== 'number' || !idUsuario || typeof idUsuario !== 'number') {
+    console.error('Parámetros inválidos:', { idUsuario, idNivel });
     return;
+  }
+
+  if (puntaje <= 0) {
+    console.log(`Nivel ${idNivel} no completado correctamente`);
   }
 
   try {
     const db = await getDB();
-    const tx = db.transaction('nivelxusuario', 'readwrite');
-    const store = tx.objectStore('nivelxusuario');
-    const index = store.index('IdNivel'); // Asegúrate de haber creado este índice
+    const tx = db.transaction('NivelXUsuario', 'readwrite');
+    const store = tx.objectStore('NivelXUsuario');
+    const index = store.index('IdUsuario_IdNivel');
 
-    // Obtener el objeto existente
-    const nivel: NivelXUsuario = await index.get(idNivel);
+    const nivel: NivelXUsuario = await index.get([idUsuario, idNivel]);
 
     if (!nivel) {
       console.error(`No se encontró nivel con IdNivel=${idNivel}`);
@@ -239,7 +242,7 @@ export const cargarDatosNivel = async (idNivel: number, puntaje: number, tiempo:
     await store.put(nivel);
     await tx.done;
 
-    console.log(`Datos actualizados para nivel ${idNivel}`)
+    console.log(`Datos actualizados para usuario ${idUsuario}, nivel ${idNivel}`)
     
   } catch (error) {
     console.error('Error al cargar datos del nivel:', error);
