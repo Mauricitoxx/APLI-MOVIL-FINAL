@@ -3,7 +3,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 let dbInstance: IDBPDatabase | null = null;
 
 const DB_NAME = 'AppDB';
-const DB_VERSION = 10;
+const DB_VERSION = 11;
 
 export const setupIndexedDB = async (): Promise<void> => {
   console.log('Inicializando BD...');
@@ -26,6 +26,7 @@ export const setupIndexedDB = async (): Promise<void> => {
       if (!database.objectStoreNames.contains('NivelXUsuario')){
         const nivelXUsuarioStore = database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
         nivelXUsuarioStore.createIndex('IdUsuario', 'IdUsuario');
+        nivelXUsuarioStore.createIndex('IdNivel', 'IdNivel',  { unique: true });
       }
 
       if (!database.objectStoreNames.contains('Herramienta')){

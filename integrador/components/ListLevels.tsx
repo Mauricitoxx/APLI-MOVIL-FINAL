@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Button } fro
 import { NivelXUsuario } from '@/assets/database/type';
 import { insertNivelXUsuario } from '@/assets/database/query';
 import { useUser } from '@/context/UserContext';
+import { setupIndexedDB } from '@/assets/database/db';
 
 interface Props {
   niveles: NivelXUsuario[];
@@ -17,6 +18,17 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
 
   const nivelesUsuario = niveles.filter(n => n.IdUsuario === userId);
   const nivelesOrdenados = [...nivelesUsuario].sort((a, b) => a.IdNivel - b.IdNivel);
+
+  useEffect(() => {
+    const init = async () => {
+      await setupIndexedDB();
+      const nivelesGuardados = localStorage.getItem('nivelesUsuario');
+      if (nivelesGuardados) {
+        setNiveles(JSON.parse(nivelesGuardados));
+      }
+    };
+    init();
+  }, [setNiveles]);
 
   useEffect(() => {
     const nivelesGuardados = localStorage.getItem('nivelesUsuario');

@@ -1,4 +1,4 @@
-import { getDB } from './db';
+import { getDB, setupIndexedDB } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
 export const insertUsuario = async (usuario: Usuario): Promise<number> => {
@@ -150,6 +150,7 @@ export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> 
 }
 
 //Obtener todos los NivelXUsuario segun idUsuario
+
 export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuario[]> => {
   const db = await getDB();
   const tx = db.transaction('NivelXUsuario', 'readonly');
@@ -157,7 +158,6 @@ export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuar
   const index = store.index('IdUsuario')
   return await index.getAll(idUsuario)
 }
-
 
 //Niveles y Juego
 //Crear un nuevo nivel por usuario
@@ -195,18 +195,13 @@ export const restarVida = async (idUsuario: number) => {
     return;
   }
   const db = await getDB();
-
   const tx = db.transaction('Vida', 'readwrite');
   const store = tx.objectStore('Vida');
   const index = store.index('IdUsuario');
 
-  const vida: Vida = await new Promise((resolve, reject) => {
-    const request = index.get(idUsuario);
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
+  const vida = await index.get(idUsuario) as Vida;
 
-  if (vida?.cantidad! > 0) {
+  if (vida && vida?.cantidad! > 0) {
     vida.cantidad! -= 1;
     await store.put(vida);
     await tx.done;
@@ -215,6 +210,42 @@ export const restarVida = async (idUsuario: number) => {
     console.warn('El usuario no tiene vidas disponibles');
   }
 };
+
+//Cargar los nuevos datos al nivel jugado
+export const cargarDatosNivel = async (idNivel: number, puntaje: number, tiempo: number) => {
+  if (!idNivel || typeof idNivel !== 'number') {
+    console.error('idNivel inválido:', idNivel);
+    return;
+  }
+
+  try {
+    const db = await getDB();
+    const tx = db.transaction('nivelxusuario', 'readwrite');
+    const store = tx.objectStore('nivelxusuario');
+    const index = store.index('IdNivel'); // Asegúrate de haber creado este índice
+
+    // Obtener el objeto existente
+    const nivel: NivelXUsuario = await index.get(idNivel);
+
+    if (!nivel) {
+      console.error(`No se encontró nivel con IdNivel=${idNivel}`);
+      return;
+    }
+
+    nivel.puntaje = puntaje;
+    nivel.tiempo = tiempo;
+    nivel.intento = nivel.intento + 1;
+
+    await store.put(nivel);
+    await tx.done;
+
+    console.log(`Datos actualizados para nivel ${idNivel}`)
+    
+  } catch (error) {
+    console.error('Error al cargar datos del nivel:', error);
+  }
+};
+
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
   const db = await getDB();

@@ -2,30 +2,17 @@ import { getHerramienta } from '@/assets/database/query';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useUser } from '@/context/UserContext';
+import { setupIndexedDB } from '@/assets/database/db';
 
 export default function ToolSelector() {
   const [selected, setSelected] = useState<'pasa' | 'ayuda'>('pasa');
   const { userId } = useUser();
+  const [loading, setLoading] = useState(true);
 
   const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }> ({
     pasa: 0,
     ayuda: 0,
   })
-
-  useEffect(() => {
-    const fetchTools = async () => {
-      const herramientas = await getHerramienta(userId!);
-      const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
-
-      herramientas.forEach(h => {
-        contadores[h.tipo] = h.cantidad;
-      });
-
-      setCantidadHerramientas(contadores);
-    };
-
-    fetchTools();
-  }, [userId])
 
   const options = {
     pasa: {
@@ -35,6 +22,29 @@ export default function ToolSelector() {
       description: 'Te da una pista sobre que letra puede estar en tu palabra',
     },
   };
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      if (!userId) return;
+
+      await setupIndexedDB();
+
+      const herramientas = await getHerramienta(userId);
+      const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
+
+      herramientas.forEach(h => {
+        contadores[h.tipo] = h.cantidad;
+      });
+
+      setCantidadHerramientas(contadores);
+      setLoading(false);
+    };
+
+    cargarDatos();
+  }, [userId]);
+
+
+  if (loading) return <Text>Cargando herramientas...</Text>;
 
   return (
     <View style={styles.jumpRow}>
@@ -152,3 +162,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+function fetchTools() {
+  throw new Error('Function not implemented.');
+}
+
