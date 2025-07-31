@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
 import Countdown from '@/components/CountDown';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useUser } from '@/context/UserContext';
 import { getNivelesXUsuario, getUsuarioPorId, getVidas } from '@/assets/database/query';
 import ListLevels from '@/components/ListLevels';
 import { NivelXUsuario } from '@/assets/database/type';
-import Footer from '@/components/Footer'; 
+import Footer from '@/components/Footer';
 
 
 export default function Home() {
@@ -17,7 +17,9 @@ export default function Home() {
 
   const [monedas, setMonedas] = useState<number | undefined>(undefined);
   const [vidas, setVidas] = useState<number | undefined>(undefined);
-  const [listaNiveles, setListaNiveles] = useState<NivelXUsuario[]>([]);
+
+  const [nivelesParaListLevelsHome, setNivelesParaListLevelsHome] = useState<any[]>([]);
+
 
   const [selected, setSelected] = useState<'verde' | 'amarilla' | 'gris'>('verde');
   const options = {
@@ -34,8 +36,8 @@ export default function Home() {
 
   useEffect(() => {
     const fetchVida = async () => {
-      const vidas = await getVidas(userId!);
-
+      if (!userId) return;
+      const vidas = await getVidas(userId);
       if (vidas.length > 0) {
         const cantidad = vidas[0].cantidad ?? 0;
         setVidas(cantidad);
@@ -43,34 +45,145 @@ export default function Home() {
         setVidas(0);
       }
     };
-
     fetchVida();
   }, [userId]);
 
   useEffect(() => {
     const fetchUsuario = async () => {
+      if (!userId) return;
       try {
-        const datosUsuario = await getUsuarioPorId(userId!);
+        const datosUsuario = await getUsuarioPorId(userId);
         setMonedas(datosUsuario?.monedas ?? 0);
       } catch (err) {
-        console.error('Error obteniendo usuario:', err);
+        console.error('Home: Error obteniendo usuario:', err);
         setMonedas(0);
       }
     };
     fetchUsuario();
   }, [userId]);
 
-  useEffect(() => {
-    const fetchNiveles = async () => {
-      try {
-        const niveles = await getNivelesXUsuario(userId!);
-        setListaNiveles(niveles);
-      } catch (err) {
-        console.error('Error obteniendo usuario:', err);
-      }
-    };
-    fetchNiveles();
-  }, [userId]);
+  useFocusEffect(
+    React.useCallback(() => {
+      const fetchAndPrepareLevelsForHome = async () => {
+        if (!userId) {
+          console.log('Home: userId es null/undefined, no se pueden obtener niveles para ListLevels.');
+          setNivelesParaListLevelsHome([{
+            id: '1', level: 1, puntaje: 0, tiempo: 60,
+            completado: false, disponible: true, bloqueado: false,
+            palabra: null, intento: 0, recompensa_intento: '', IdUsuario: 0, IdNivel: 1, idForFlatList: '1'
+          }]);
+          return;
+        }
+        try {
+          const nivelesExistentesDb: NivelXUsuario[] = await getNivelesXUsuario(userId);
+          console.log('Home: Niveles existentes obtenidos de DB:', nivelesExistentesDb);
+
+          const nivelesIdsCompletados = nivelesExistentesDb
+                                        .filter(n => n.puntaje > 0)
+                                        .map(n => n.IdNivel);
+          console.log('Home: nivelesIdsCompletados:', nivelesIdsCompletados);
+
+
+          const ultimoNivelCompletado = nivelesIdsCompletados.length > 0
+                                        ? Math.max(...nivelesIdsCompletados)
+                                        : 0;
+          console.log('Home: ultimoNivelCompletado:', ultimoNivelCompletado);
+
+
+          let nivelActualAJugar = ultimoNivelCompletado + 1;
+          console.log('Home: nivelActualAJugar (nivel a mostrar en amarillo):', nivelActualAJugar);
+
+
+          const levelsToShow: any[] = [];
+          const MAX_LEVELS_TO_DISPLAY = 4;
+
+          let allRelevantLevelsMap = new Map<number, NivelXUsuario>();
+
+          nivelesExistentesDb.forEach(nivel => {
+              allRelevantLevelsMap.set(nivel.IdNivel, nivel);
+          });
+
+          let currentLevelObjForProcessing: NivelXUsuario | undefined = allRelevantLevelsMap.get(nivelActualAJugar);
+
+          if (!currentLevelObjForProcessing) {
+            currentLevelObjForProcessing = {
+                id: null, // ID de DB es null hasta que se inserte
+                level: nivelActualAJugar,
+                puntaje: 0,
+                tiempo: 60,
+                palabra: null, intento: 0, recompensa_intento: '0',
+                IdUsuario: userId,
+                IdNivel: nivelActualAJugar
+            };
+            allRelevantLevelsMap.set(nivelActualAJugar, currentLevelObjForProcessing);
+          } else if (currentLevelObjForProcessing.puntaje > 0) {
+              const nextActualLevel = nivelActualAJugar + 1;
+              let nextActualLevelObj = allRelevantLevelsMap.get(nextActualLevel);
+              if (!nextActualLevelObj) {
+                  nextActualLevelObj = {
+                    id: null, // ID de DB es null
+                    level: nextActualLevel,
+                    puntaje: 0, tiempo: 60, palabra: null, intento: 0, recompensa_intento: '0',
+                    IdUsuario: userId, IdNivel: nextActualLevel
+                  };
+                  allRelevantLevelsMap.set(nextActualLevel, nextActualLevelObj);
+              }
+              nivelActualAJugar = nextActualLevel;
+          }
+
+
+          let sortedLevelsToDisplay = Array.from(allRelevantLevelsMap.values()).sort((a, b) => a.IdNivel - b.IdNivel);
+
+          for (const rawNivel of sortedLevelsToDisplay) {
+              let completado = false;
+              let disponible = false;
+              let bloqueado = false;
+
+              if (rawNivel.puntaje > 0) {
+                completado = true;
+              }
+
+              if (rawNivel.IdNivel === nivelActualAJugar) {
+                  disponible = true;
+              } else if (rawNivel.IdNivel < nivelActualAJugar && completado) {
+                  disponible = true;
+              }
+
+              levelsToShow.push({
+                // id: Pasamos el 'id' numérico de la DB. Será null para niveles no insertados.
+                id: rawNivel.id,
+                // idForFlatList: Usamos el ID de la DB (convertido a string) o el IdNivel temporal.
+                idForFlatList: rawNivel.id ? String(rawNivel.id) : String(rawNivel.IdNivel),
+                level: rawNivel.IdNivel,
+                puntaje: rawNivel.puntaje ?? 0,
+                tiempo: rawNivel.tiempo ?? 60,
+                completado: completado,
+                disponible: disponible,
+                bloqueado: bloqueado,
+                palabra: rawNivel.palabra ?? null,
+                intento: rawNivel.intento ?? 0,
+                recompensa_intento: rawNivel.recompensa_intento ?? '',
+                IdUsuario: rawNivel.IdUsuario ?? userId,
+                IdNivel: rawNivel.IdNivel,
+              });
+          }
+
+          setNivelesParaListLevelsHome(levelsToShow);
+          console.log('Home: Niveles PROCESADOS FINAL para ListLevels (con status y DB id):', levelsToShow);
+
+        } catch (err) {
+          console.error('Home: Error obteniendo y preparando niveles para ListLevels:', err);
+          setNivelesParaListLevelsHome([{
+            id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 60,
+            completado: false, disponible: true, bloqueado: false,
+            palabra: null, intento: 0, recompensa_intento: '', IdUsuario: userId, IdNivel: 1
+          }]);
+        }
+      };
+
+      fetchAndPrepareLevelsForHome();
+    }, [userId])
+  );
 
 
   function capitalize(color: string) {
@@ -79,63 +192,68 @@ export default function Home() {
 
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.currency}>
-          <Text style={styles.currencyText}>💰 {monedas ?? 'Cargando...'}</Text>
+    <View style={styles.fullScreenContainer}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 150 }} horizontal={false} showsVerticalScrollIndicator={true}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.currency}>
+            <Text style={styles.currencyText}>💰 {monedas ?? 'Cargando...'}</Text>
+          </View>
+          <View style={styles.currency}>
+            <Text style={styles.currencyText}>❤️ {vidas ?? 'Cargando...'}</Text>
+          </View>
         </View>
-        <View style={styles.currency}>
-          <Text style={styles.currencyText}>❤️ {vidas ?? 'Cargando...'}</Text>
+
+        {/* Niveles - Ahora pasa los niveles procesados a ListLevels */}
+        <Text style={styles.sectionTitle}>Niveles</Text>
+        {nivelesParaListLevelsHome.length > 0 ? (
+          <ListLevels
+            niveles={nivelesParaListLevelsHome}
+            navigation={navigation}
+          />
+        ) : (
+          <Text style={styles.noLevelsAvailable}>No hay niveles disponibles para mostrar.</Text>
+        )}
+
+
+        {/* Próxima vida */}
+        <View style={styles.nextLifeBox}>
+          <Text style={styles.nextLifeText}><Countdown /></Text>
         </View>
-      </View>
 
-      {/* Niveles */}
-      <Text style={styles.sectionTitle}>Niveles</Text>
-      <ListLevels
-        niveles={listaNiveles}
-        setNiveles={setListaNiveles}
-        navigation={navigation}
-      />
+        {/* Herramientas */}
+        <ToolSelector />
 
-      {/* Próxima vida */}
-      <View style={styles.nextLifeBox}>
-        <Text style={styles.nextLifeText}><Countdown /></Text>
-      </View>
+        {/* Como Jugar */}
+        <View style={styles.rulesContainer}>
+          <Text style={styles.rulesTitle}>¿Cómo Jugar?</Text>
+          <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo número de nivel entre usuarios.</Text>
+          <Text style={styles.rulesSubtitle}>Cada intento debe ser una palabra válida. En cada ronda el juego pinta cada letra de un color indicando si esa letra se encuentra o no en la palabra y si se encuentra en la posición correcta.</Text>
 
-      {/* Herramientas */}
-      <ToolSelector />
-
-      {/* Como Jugar */}
-      <View style={styles.rulesContainer}>
-        <Text style={styles.rulesTitle}>¿Cómo Jugar?</Text>
-        <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo número de nivel entre usuarios.</Text>
-        <Text style={styles.rulesSubtitle}>Cada intento debe ser una palabra válida. En cada ronda el juego pinta cada letra de un color indicando si esa letra se encuentra o no en la palabra y si se encuentra en la posición correcta.</Text>
-
-        <View style={styles.rulesButtons}>
-          {['verde', 'amarilla', 'gris'].map((color) => (
-            <TouchableOpacity
-              key={color}
-              style={[
-                styles.ruleButton,
-                selected === color && styles.ruleButtonSelected,
-              ]}
-              onPress={() => setSelected(color)}
-            >
-              <Text
+          <View style={styles.rulesButtons}>
+            {['verde', 'amarilla', 'gris'].map((color) => (
+              <TouchableOpacity
+                key={color}
                 style={[
-                  styles.ruleButtonText,
-                  selected === color && styles.ruleButtonTextSelected,
+                  styles.ruleButton,
+                  selected === color && styles.ruleButtonSelected,
                 ]}
+                onPress={() => setSelected(color as 'verde' | 'amarilla' | 'gris')}
               >
-                {`Letra ${capitalize(color)}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+                <Text
+                  style={[
+                    styles.ruleButtonText,
+                    selected === color && styles.ruleButtonTextSelected,
+                  ]}
+                >
+                  {`Letra ${capitalize(color)}`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
 
-        <View style={styles.ruleDescriptionBox}>
-          <Image
+          <View style={styles.ruleDescriptionBox}>
+            <Image
               source={
                 selected === 'verde'
                   ? require('../images/verdeLetra.png')
@@ -145,14 +263,14 @@ export default function Home() {
               }
               style={styles.ruleImage}
               resizeMode="contain"
-          />
+            />
 
-          <Text style={styles.ruleDescription}>{options[selected].description}</Text>
+            <Text style={styles.ruleDescription}>{options[selected].description}</Text>
+          </View>
         </View>
-      </View>
 
-
-      {/* Botón jugar */}
+      </ScrollView>
+      {/* Botón jugar y Footer */}
       <TouchableOpacity style={styles.playButton}>
         <Text style={styles.playText}>Jugar</Text>
       </TouchableOpacity>
@@ -163,9 +281,12 @@ export default function Home() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  fullScreenContainer: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  container: {
+    flex: 1,
     padding: 10,
   },
   header: {
@@ -190,6 +311,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 20,
     marginBottom: 6,
+  },
+  noLevelsAvailable: {
+    color: '#aaa',
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
   },
   imageBox: {
     width: 100,

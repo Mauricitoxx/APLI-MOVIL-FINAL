@@ -1,35 +1,30 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Button } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Button, Dimensions } from 'react-native';
 import { NivelXUsuario } from '@/assets/database/type';
-import { insertNivelXUsuario } from '@/assets/database/query';
 import { useUser } from '@/context/UserContext';
 
+const { width } = Dimensions.get('window');
+const SPACING = 10;
+const ITEM_SIZE_HOME_4_COLUMNS = (width - SPACING * 5) / 4;
+
+
 interface Props {
-  niveles: NivelXUsuario[];
-  setNiveles: (niveles: NivelXUsuario[]) => void;
+  niveles: any[];
   navigation: any;
 }
 
-const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
+const ListLevels: React.FC<Props> = ({ niveles, navigation }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [nivelSeleccionado, setNivelSeleccionado] = useState<NivelXUsuario | null>(null);
+  const [nivelSeleccionado, setNivelSeleccionado] = useState<any | null>(null);
   const { userId } = useUser();
 
-  const nivelesUsuario = niveles.filter(n => n.IdUsuario === userId);
-  const nivelesOrdenados = [...nivelesUsuario].sort((a, b) => a.IdNivel - b.IdNivel);
 
-  useEffect(() => {
-    const nivelesGuardados = localStorage.getItem('nivelesUsuario');
-    if (nivelesGuardados) {
-      setNiveles(JSON.parse(nivelesGuardados));
-    }
-  }, [setNiveles]);
-
-  const handleSeleccionarNivel = (nivel: NivelXUsuario) => {
-    const disponible = true;
-    if (disponible) {
+  const handleSeleccionarNivel = (nivel: any) => {
+    if (nivel.disponible) {
       setNivelSeleccionado(nivel);
       setModalVisible(true);
+    } else {
+      console.log(`ListLevels: Nivel ${nivel.level} no está disponible (bloqueado).`);
     }
   };
 
@@ -39,53 +34,32 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
     setModalVisible(false);
 
     navigation.navigate('Game', {
-      nivel: nivelSeleccionado,
-      onResultado: async (nivelActualizado: NivelXUsuario | null) => {
-        if (!nivelActualizado) return;
-
-        const nuevosNiveles = niveles.map(n =>
-          n.IdNivel === nivelActualizado.IdNivel ? nivelActualizado : n
-        );
-
-        const siguienteId = nivelActualizado.IdNivel + 1;
-        const yaExisteSiguiente = niveles.some(n =>
-          n.IdNivel === siguienteId && n.IdUsuario === nivelActualizado.IdUsuario
-        );
-
-        if (!yaExisteSiguiente) {
-          const nuevoNivel = await insertNivelXUsuario(nivelActualizado.IdUsuario);
-          nuevosNiveles.push(nuevoNivel);
-        }
-
-        nuevosNiveles.sort((a, b) => a.IdNivel - b.IdNivel);
-        setNiveles(nuevosNiveles);
-      }
+      nivel: nivelSeleccionado, // Pasa el nivel completo incluyendo el ID real de la DB
     });
   };
 
   const renderItem = ({ item, index }) => {
-    const nivelAnterior = index > 0 ? niveles[index - 1] : null;
-
-    const completado = item.puntaje > 0;
-    const disponible = index === 0 || (nivelAnterior && nivelAnterior.puntaje > 0);
-    const bloqueado = !completado && !disponible;
+    const completado = item.completado;
+    const disponible = item.disponible;
+    const bloqueado = item.bloqueado;
 
     const getCardStyle = () => {
       if (completado) return styles.cardCompletado;
+      if (disponible) return styles.cardDisponible;
       if (bloqueado) return styles.cardBloqueado;
-      return styles.cardDisponible;
+      return styles.cardDefault;
     };
 
     return (
       <TouchableOpacity
-        key={item.IdNivel}
+        key={item.idForFlatList} // Usa item.idForFlatList como key
         style={[styles.card, getCardStyle()]}
         disabled={bloqueado}
-        onPress={() => disponible && handleSeleccionarNivel(item)}
+        onPress={() => handleSeleccionarNivel(item)}
       >
-        <Text style={styles.title}>Nivel {index + 1}</Text>
-        <Text>Puntaje: {item.puntaje}</Text>
-        <Text>Tiempo: {item.tiempo}</Text>
+        <Text style={styles.title}>Nivel {item.level}</Text>
+        <Text style={styles.infoText}>Puntaje: {item.puntaje}</Text>
+        <Text style={styles.infoText}>Tiempo: {item.tiempo}</Text>
       </TouchableOpacity>
     );
   };
@@ -95,8 +69,8 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
       <FlatList
         horizontal
         showsHorizontalScrollIndicator={false}
-        data={nivelesOrdenados}
-        keyExtractor={(item) => item.IdNivel.toString()}
+        data={niveles}
+        keyExtractor={(item) => item.idForFlatList.toString()} // Usa item.idForFlatList
         renderItem={renderItem}
         contentContainerStyle={styles.listcontainer}
       />
@@ -136,9 +110,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   card: {
-    width: 110,
+    width: ITEM_SIZE_HOME_4_COLUMNS,
     height: 100,
-    marginRight: 12,
+    marginRight: SPACING,
     borderRadius: 12,
     padding: 10,
     justifyContent: 'center',
@@ -147,6 +121,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+  },
+  cardDefault: {
+    backgroundColor: '#AAAAAA',
+    borderWidth: 2,
+    borderColor: '#777777',
   },
   cardCompletado: {
     backgroundColor: '#a5edb6ff',
@@ -167,6 +146,10 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
     marginBottom: 4,
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#333',
   },
   modalOverlay: {
     flex: 1,
