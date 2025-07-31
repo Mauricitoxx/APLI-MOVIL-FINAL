@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
@@ -35,54 +35,34 @@ export default function Home() {
 
   useFocusEffect(
     useCallback(() => {
-      const fetchVida = async () => {
-        const vidas = await getVidas(userId!);
-
-        if (vidas.length > 0) {
-          const cantidad = vidas[0].cantidad ?? 0;
-          setVidas(cantidad);
-        } else {
-          setVidas(0);
-        }
-      };
-
-      fetchVida();
-    }, [userId])
-  );
-
-  useEffect(() => {
-    const fetchUsuario = async () => {
-      try {
-        await setupIndexedDB();
-        const datosUsuario = await getUsuarioPorId(userId!);
-        setMonedas(datosUsuario?.monedas ?? 0);
-      } catch (err) {
-        console.error('Error obteniendo usuario:', err);
-        setMonedas(0);
-      }
-    };
-    fetchUsuario();
-  }, [userId]);
-
-  useFocusEffect(
-    useCallback(() => {
-      const fetchNiveles = async () => {
+      const fetchDatos = async () => {
         try {
           await setupIndexedDB();
-          let niveles = await getNivelesXUsuario(userId!);
 
-          // Si no hay niveles aún, crear el primero automáticamente
+          // Obtener vidas
+          const vidasRes = await getVidas(userId!);
+          const cantidadVidas = vidasRes.length > 0 ? vidasRes[0].cantidad ?? 0 : 0;
+          setVidas(cantidadVidas);
+
+          // Obtener monedas
+          const usuario = await getUsuarioPorId(userId!);
+          const monedasRes = usuario?.monedas ?? 0;
+          setMonedas(monedasRes);
+
+          // Obtener niveles
+          let niveles = await getNivelesXUsuario(userId!);
           if (niveles.length === 0) {
             const nuevoNivel = await insertNivelXUsuario(userId!);
             niveles = [nuevoNivel];
           }
           setListaNiveles(niveles);
-        } catch (err) {
-          console.error('Error obteniendo niveles:', err);
+
+        } catch (error) {
+          console.error("Error al cargar datos del usuario:", error);
         }
       };
 
-      fetchNiveles();
+      fetchDatos();
     }, [userId])
   );
 

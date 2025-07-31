@@ -1,5 +1,6 @@
-import { cargarDatosNivel, restarVida } from "@/assets/database/query";
+import { cargarDatosNivel, insertMoneda, restarVida } from "@/assets/database/query";
 import { useUser } from "@/context/UserContext";
+import { useNavigation } from "expo-router";
 import React, {useState} from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 
@@ -15,6 +16,8 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     const intentoMax = 5;
     const [inicioJuego] = useState(Date.now());
     const { userId } = useUser();
+    const cerrarModalCallback = React.useRef<() => void | null>(null);
+    const navigation = useNavigation();
 
     const [intentoActual, setIntentoActual] = useState(0);
     const [letrasIngresadas, setLetrasIngresadas] = useState<string[][]>(
@@ -22,7 +25,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     );
     const [letraPos, setLetraPos] = useState(0);
     const [resultadoFinal, setResultadoFinal] = useState<{ganado: boolean, puntos?: number, tiempo?: number} | null>(null);
-
+    const [estadoTeclado, setEstadoTeclado] = useState<Record<string, 'correcta' | 'presente' | 'incorrecta' | undefined>>({});
 
     const [mensajeModal, setMensajeModal] = useState('');
     const [visibleModal, setVisibleModal] = useState(false);
@@ -34,23 +37,45 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             return;
         }
 
+        const colores: string[] = intento.split('').map((letra, index) => {
+            const objetivo = palabraNivel.toLowerCase();
+            const letraObjetivo = objetivo[index];
+            if (letra === letraObjetivo) return 'verde';
+
+            const totalEnObjetivo = objetivo.split('').filter(l => l === letra).length;
+            const correctasPrevias = intento
+                .split('')
+                .filter((l, i) => l === letra && objetivo[i] === l && i < index).length;
+
+            if (objetivo.includes(letra) && correctasPrevias < totalEnObjetivo) {
+                return 'amarillo';
+            }
+
+            return 'gris';
+        });
+
+        actualizarTeclado(intento, colores);
+
         if (intento === palabraNivel.toLowerCase()) {
             const finJuego = Date.now();
             const tiempoEnSegundos = Math.floor((finJuego - inicioJuego) / 1000);
             const puntos = 100 - intentoActual * 20; 
 
             setTimeout( async () => {
-                mostrarModal(`¡Correcto! Obtuviste ${puntos} puntos en ${tiempoEnSegundos} segundos.`);
+                await mostrarModal(`¡Correcto! Obtuviste ${puntos} puntos en ${tiempoEnSegundos} segundos.`);
                 setResultadoFinal({ ganado: true, puntos, tiempo: tiempoEnSegundos });
                 await cargarDatosNivel(userId!, idNivel, puntos, tiempoEnSegundos);
+
+                await mostrarModal(`Haz obtenido ${puntos} monedas.`)
+                await insertMoneda(userId!, puntos); 
             }, 100);
             return;
         }
 
         if (intentoActual === intentoMax - 1) {
             setTimeout( async () => {
-                mostrarModal(`¡Has perdido!`);
                 setResultadoFinal({ ganado: false });
+                await mostrarModal(`¡Has perdido!`);
                 await cargarDatosNivel(userId!, idNivel, 0, 0);
                 await restarVida(userId!).catch(err => console.error('Error al restar vida:', err));
             }, 100);
@@ -79,16 +104,25 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         }
     }
 
-    const mostrarModal = (mensaje: string) => {
+    const mostrarModal = (mensaje: string): Promise<void> => {
+      return new Promise((resolve) => {
         setMensajeModal(mensaje);
         setVisibleModal(true);
+        cerrarModalCallback.current = resolve;
+      });
     };
 
     const cerrarModal = () => {
         setVisibleModal(false);
+        if (cerrarModalCallback.current) {
+          cerrarModalCallback.current();
+          cerrarModalCallback.current = null;
+        }
+
         if (resultadoFinal) {
-            onGameEnd(resultadoFinal.ganado, resultadoFinal.puntos, resultadoFinal.tiempo);
-            setResultadoFinal(null); 
+          onGameEnd(resultadoFinal.ganado, resultadoFinal.puntos, resultadoFinal.tiempo);
+          setResultadoFinal(null);
+          navigation.goBack();
         }
     };
 
@@ -96,12 +130,12 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         return (
             <View key={filaIndex} style={styles.row}>
                 {fila.map((letra, index) => {
-                const estilo = getEstiloLetra(letra, index, filaIndex);
-                return (
-                    <View key={index} style={[styles.cell, estilo]}>
-                    <Text style={styles.cellText}>{letra.toUpperCase()}</Text>
-                    </View>
-                );
+                  const estilo = getEstiloLetra(letra, index, filaIndex);
+                  return (
+                      <View key={index} style={[styles.cell, estilo]}>
+                        <Text style={styles.cellText}>{letra.toUpperCase()}</Text>
+                      </View>
+                  );
                 })}
             </View>
         );
@@ -130,11 +164,40 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         return styles.cellIncorrect;
     };
 
-  const tecladoFilas = [
-    'QWERTYUIOP'.split(''),
-    'ASDFGHJKLÑ'.split(''),
-    ['⌫', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⏎'],
-  ];
+    const actualizarTeclado = (intento: string, colores: string[]) => {
+      setEstadoTeclado(prev => {
+        const nuevoEstado = { ...prev };
+
+        intento.split('').forEach((letra, index) => {
+          const color = colores[index];
+
+          if (color === 'verde') {
+            nuevoEstado[letra] = 'correcta';
+          } else if (color === 'amarillo' && nuevoEstado[letra] !== 'correcta') {
+            nuevoEstado[letra] = 'presente';
+          } else if (color === 'gris' && !nuevoEstado[letra]) {
+            nuevoEstado[letra] = 'incorrecta';
+          }
+        });
+        return nuevoEstado;
+      });
+    };
+
+     const obtenerColorTecla = (letra: string) => {
+        switch (estadoTeclado[letra.toLowerCase()]) {
+            case 'correcta': return styles.cellCorrect;
+            case 'presente': return styles.cellMisplaced;
+            case 'incorrecta': return styles.cellIncorrect;
+            default: return styles.key;
+        }
+    };
+
+
+    const tecladoFilas = [
+      'QWERTYUIOP'.split(''),
+      'ASDFGHJKLÑ'.split(''),
+      ['⌫', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⏎'],
+    ];
 
     return (
         <View style={styles.container}>
@@ -149,15 +212,15 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
                     {fila.map((letra) => {
                         const isSpecial = letra === '⌫' || letra === '⏎';
                         const onPress = letra === '⌫'
-                        ? handleBorrar
-                        : letra === '⏎'
-                        ? handleEnter
-                        : () => handleLetra(letra.toLowerCase());
+                          ? handleBorrar
+                          : letra === '⏎'
+                            ? handleEnter
+                            : () => handleLetra(letra.toLowerCase());
 
                         return (
                         <TouchableOpacity
                             key={letra}
-                            style={[styles.key, isSpecial && styles.specialKey]}
+                            style={[styles.key, obtenerColorTecla(letra), isSpecial && styles.specialKey]}
                             onPress={onPress}
                         >
                             <Text style={styles.keyText}>{letra}</Text>
