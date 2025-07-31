@@ -25,7 +25,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     );
     const [letraPos, setLetraPos] = useState(0);
     const [resultadoFinal, setResultadoFinal] = useState<{ganado: boolean, puntos?: number, tiempo?: number} | null>(null);
-
+    const [estadoTeclado, setEstadoTeclado] = useState<Record<string, 'correcta' | 'presente' | 'incorrecta' | undefined>>({});
 
     const [mensajeModal, setMensajeModal] = useState('');
     const [visibleModal, setVisibleModal] = useState(false);
@@ -36,6 +36,25 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             mostrarModal('¡Palabra incompleta!');
             return;
         }
+
+        const colores: string[] = intento.split('').map((letra, index) => {
+            const objetivo = palabraNivel.toLowerCase();
+            const letraObjetivo = objetivo[index];
+            if (letra === letraObjetivo) return 'verde';
+
+            const totalEnObjetivo = objetivo.split('').filter(l => l === letra).length;
+            const correctasPrevias = intento
+                .split('')
+                .filter((l, i) => l === letra && objetivo[i] === l && i < index).length;
+
+            if (objetivo.includes(letra) && correctasPrevias < totalEnObjetivo) {
+                return 'amarillo';
+            }
+
+            return 'gris';
+        });
+
+        actualizarTeclado(intento, colores);
 
         if (intento === palabraNivel.toLowerCase()) {
             const finJuego = Date.now();
@@ -111,12 +130,12 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         return (
             <View key={filaIndex} style={styles.row}>
                 {fila.map((letra, index) => {
-                const estilo = getEstiloLetra(letra, index, filaIndex);
-                return (
-                    <View key={index} style={[styles.cell, estilo]}>
-                    <Text style={styles.cellText}>{letra.toUpperCase()}</Text>
-                    </View>
-                );
+                  const estilo = getEstiloLetra(letra, index, filaIndex);
+                  return (
+                      <View key={index} style={[styles.cell, estilo]}>
+                        <Text style={styles.cellText}>{letra.toUpperCase()}</Text>
+                      </View>
+                  );
                 })}
             </View>
         );
@@ -145,11 +164,40 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         return styles.cellIncorrect;
     };
 
-  const tecladoFilas = [
-    'QWERTYUIOP'.split(''),
-    'ASDFGHJKLÑ'.split(''),
-    ['⌫', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⏎'],
-  ];
+    const actualizarTeclado = (intento: string, colores: string[]) => {
+      setEstadoTeclado(prev => {
+        const nuevoEstado = { ...prev };
+
+        intento.split('').forEach((letra, index) => {
+          const color = colores[index];
+
+          if (color === 'verde') {
+            nuevoEstado[letra] = 'correcta';
+          } else if (color === 'amarillo' && nuevoEstado[letra] !== 'correcta') {
+            nuevoEstado[letra] = 'presente';
+          } else if (color === 'gris' && !nuevoEstado[letra]) {
+            nuevoEstado[letra] = 'incorrecta';
+          }
+        });
+        return nuevoEstado;
+      });
+    };
+
+     const obtenerColorTecla = (letra: string) => {
+        switch (estadoTeclado[letra.toLowerCase()]) {
+            case 'correcta': return styles.cellCorrect;
+            case 'presente': return styles.cellMisplaced;
+            case 'incorrecta': return styles.cellIncorrect;
+            default: return styles.key;
+        }
+    };
+
+
+    const tecladoFilas = [
+      'QWERTYUIOP'.split(''),
+      'ASDFGHJKLÑ'.split(''),
+      ['⌫', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⏎'],
+    ];
 
     return (
         <View style={styles.container}>
@@ -164,15 +212,15 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
                     {fila.map((letra) => {
                         const isSpecial = letra === '⌫' || letra === '⏎';
                         const onPress = letra === '⌫'
-                        ? handleBorrar
-                        : letra === '⏎'
-                        ? handleEnter
-                        : () => handleLetra(letra.toLowerCase());
+                          ? handleBorrar
+                          : letra === '⏎'
+                            ? handleEnter
+                            : () => handleLetra(letra.toLowerCase());
 
                         return (
                         <TouchableOpacity
                             key={letra}
-                            style={[styles.key, isSpecial && styles.specialKey]}
+                            style={[styles.key, obtenerColorTecla(letra), isSpecial && styles.specialKey]}
                             onPress={onPress}
                         >
                             <Text style={styles.keyText}>{letra}</Text>
