@@ -1,47 +1,53 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
-let dbPromise: Promise<IDBPDatabase> | null = null;
+let dbInstance: IDBPDatabase | null = null;
 
 const DB_NAME = 'AppDB';
-const DB_VERSION = 7;
+const DB_VERSION = 12;
 
 export const setupIndexedDB = async (): Promise<void> => {
-  dbPromise = openDB(DB_NAME, DB_VERSION, {
+  console.log('Inicializando BD...');
+  if (dbInstance) return;
+
+  dbInstance = await openDB(DB_NAME, DB_VERSION, {
     upgrade(database) {
-    // Elimina todos los object stores existentes
-    for (const name of Array.from(database.objectStoreNames)) {
-      database.deleteObjectStore(name);
+
+      if (!database.objectStoreNames.contains('Usuario')) {
+        const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
+        usuarioStore.createIndex('mail', 'mail', { unique: true });
+        usuarioStore.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
+        usuarioStore.createIndex('id', 'id', { unique: true });
+      }
+
+      if (!database.objectStoreNames.contains('Nivel')){
+        database.createObjectStore('Nivel', { keyPath: 'id', autoIncrement: true });
+      }
+
+      if (!database.objectStoreNames.contains('NivelXUsuario')){
+        const nivelXUsuarioStore = database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
+        nivelXUsuarioStore.createIndex('IdUsuario', 'IdUsuario');
+        nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
+      }
+
+      if (!database.objectStoreNames.contains('Herramienta')){
+        const herramientaStore = database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
+        herramientaStore.createIndex('IdUsuario', 'IdUsuario');
+      }
+
+      if (!database.objectStoreNames.contains('Vida')){
+        const vidaStore = database.createObjectStore('Vida', { keyPath: 'id', autoIncrement: true });
+        vidaStore.createIndex('IdUsuario', 'IdUsuario');
+      }
+
+      if (!database.objectStoreNames.contains('Palabras')){
+        const palabrasStore = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
+        palabrasStore.createIndex('palabra', 'palabra', { unique: true });
+      }
     }
-
-    // Crear stores de cero
-    const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
-    usuarioStore.createIndex('mail', 'mail', { unique: true });
-    usuarioStore.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
-    usuarioStore.createIndex('id', 'id', { unique: true });
-
-
-    database.createObjectStore('Nivel', { keyPath: 'id', autoIncrement: true });
-
-    const nivelXUsuarioStore = database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
-    nivelXUsuarioStore.createIndex('IdUsuario', 'IdUsuario');
-
-    const herramientaStore = database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
-    herramientaStore.createIndex('IdUsuario', 'IdUsuario');
-
-    const vidaStore = database.createObjectStore('Vida', { keyPath: 'id', autoIncrement: true });
-    vidaStore.createIndex('IdUsuario', 'IdUsuario');
-
-    const palabrasStore = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
-    palabrasStore.createIndex('palabra', 'palabra', { unique: true });
-  }
-
   });
 
-  const db = await dbPromise;
-
   // Insertar datos de prueba si las tablas están vacías
-  const tx = db.transaction(['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'], 'readwrite');
+  const tx = dbInstance.transaction(['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'], 'readwrite');
 
   const insertIfEmpty = async (storeName: string, defaultItems: any[]) => {
     const store = tx.objectStore(storeName);
@@ -59,7 +65,8 @@ export const setupIndexedDB = async (): Promise<void> => {
   await insertIfEmpty('Nivel', [{ recompensa: 100 }, { recompensa: 200 }]);
 
   await insertIfEmpty('NivelXUsuario', [
-    { puntaje: 10, tiempo: 60, palabra: 'ejemplo', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 }
+    { puntaje: 10, tiempo: 60, palabra: 'sol', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 },
+    { puntaje: 80, tiempo: 20, palabra: 'mar', intento: 1, recompensa_intento: '30', IdUsuario: 2, IdNivel: 2 }
   ]);
 
   await insertIfEmpty('Herramienta', [
@@ -68,53 +75,21 @@ export const setupIndexedDB = async (): Promise<void> => {
     { tipo: 'pasa', cantidad: 3, IdUsuario: 2 },
     { tipo: 'ayuda', cantidad: 0, IdUsuario: 2 }
   ]);
-  await insertIfEmpty('Vida', [{ cantidad: 5, IdUsuario: 1 }]);
+
+  await insertIfEmpty('Vida', [{ cantidad: 5, IdUsuario: 1 }, { cantidad: 1, IdUsuario: 2 }]);
 
   await insertIfEmpty('Palabras', [
-    { palabra: 'ejemplo' }, 
-    { palabra: 'prueba' },
-    { palabra: 'sol' },
-    { palabra: 'mar' },
-    { palabra: 'pez' },
-    { palabra: 'luz' },
-    { palabra: 'ojo' },
-    { palabra: 'voz' },
-    { palabra: 'te' },
-    { palabra: 'pan' },
-    { palabra: 'rio' },
-    { palabra: 'sal' },
-    { palabra: 'casa' },
-    { palabra: 'luna' },
-    { palabra: 'flor' },
-    { palabra: 'toro' },
-    { palabra: 'piel' },
-    { palabra: 'cine' },
-    { palabra: 'tren' },
-    { palabra: 'mesa' },
-    { palabra: 'vino' },
-    { palabra: 'cielo' },
-    { palabra: 'perro' },
-    { palabra: 'planta' },
-    { palabra: 'nube' },
-    { palabra: 'sueño' },
-    { palabra: 'papel' },
-    { palabra: 'reloj' },
-    { palabra: 'playa' },
-    { palabra: 'viento' },
-    { palabra: 'amigo' },
-    { palabra: 'bosque' },
-    { palabra: 'calor' },
-    { palabra: 'camino' },
-    { palabra: 'tierra' },
-    { palabra: 'mirar' },
-    { palabra: 'mundo' },
+    { palabra: 'ejemplo' }, { palabra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' }, { palabra: 'luz' }, { palabra: 'ojo' }, { palabra: 'voz' }, { palabra: 'te' }, { palabra: 'pan' }, { palabra: 'rio' }, { palabra: 'sal' }, 
+    { palabra: 'casa' }, { palabra: 'luna' }, { palabra: 'flor' }, { palabra: 'toro' }, { palabra: 'piel' }, { palabra: 'cine' }, { palabra: 'tren' }, { palabra: 'mesa' }, { palabra: 'vino' }, { palabra: 'nube' },
+    { palabra: 'cielo' }, { palabra: 'perro' }, { palabra: 'planta' }, { palabra: 'sueño' }, { palabra: 'papel' }, { palabra: 'reloj' }, { palabra: 'playa' }, { palabra: 'amigo' }, { palabra: 'calor' },
+    { palabra: 'camino' }, { palabra: 'tierra' }, { palabra: 'mirar' }, { palabra: 'mundo' },{ palabra: 'viento' },{ palabra: 'bosque' },
   ]);
   await tx.done;
 };
 
 export const getDB = async (): Promise<IDBPDatabase> => {
-  if (!dbPromise) {
+  if (!dbInstance) {
     throw new Error('La base de datos no está inicializada. Llama a setupIndexedDB() primero.');
   }
-  return await dbPromise;
+  return await dbInstance;
 };

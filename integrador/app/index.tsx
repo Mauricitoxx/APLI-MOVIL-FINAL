@@ -1,16 +1,9 @@
-import { getDB, setupIndexedDB } from '@/assets/database/db';
-import { useEffect } from 'react';
+import { useNavigation } from 'expo-router';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-useEffect(() => {
-  const init = async () => {
-    await setupIndexedDB();
-    console.log('Object stores disponibles:', Array.from((await getDB()).objectStoreNames));
-  };
-  init();
-}, []);
-
 export default function IndexScreen() {
+  const navigation = useNavigation();
+
   return (
       <View style={styles.container}>
         <Text style={styles.title}>WORDLE</Text>

@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Button } fro
 import { NivelXUsuario } from '@/assets/database/type';
 import { insertNivelXUsuario } from '@/assets/database/query';
 import { useUser } from '@/context/UserContext';
+import { setupIndexedDB } from '@/assets/database/db';
 
 interface Props {
   niveles: NivelXUsuario[];
@@ -17,6 +18,17 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
 
   const nivelesUsuario = niveles.filter(n => n.IdUsuario === userId);
   const nivelesOrdenados = [...nivelesUsuario].sort((a, b) => a.IdNivel - b.IdNivel);
+
+  useEffect(() => {
+    const init = async () => {
+      await setupIndexedDB();
+      const nivelesGuardados = localStorage.getItem('nivelesUsuario');
+      if (nivelesGuardados) {
+        setNiveles(JSON.parse(nivelesGuardados));
+      }
+    };
+    init();
+  }, [setNiveles]);
 
   useEffect(() => {
     const nivelesGuardados = localStorage.getItem('nivelesUsuario');
@@ -52,9 +64,16 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
           n.IdNivel === siguienteId && n.IdUsuario === nivelActualizado.IdUsuario
         );
 
-        if (!yaExisteSiguiente) {
+        console.log('Verificando si se crea un nuevo nivel:', {
+          puntaje: nivelActualizado.puntaje,
+          yaExisteSiguiente
+        });
+
+
+        if (nivelActualizado.puntaje > 0 && !yaExisteSiguiente) {
           const nuevoNivel = await insertNivelXUsuario(nivelActualizado.IdUsuario);
           nuevosNiveles.push(nuevoNivel);
+          console.log('Nuevo nivel creado:', nuevoNivel);
         }
 
         nuevosNiveles.sort((a, b) => a.IdNivel - b.IdNivel);
@@ -85,7 +104,7 @@ const ListLevels: React.FC<Props> = ({ niveles, setNiveles, navigation }) => {
       >
         <Text style={styles.title}>Nivel {index + 1}</Text>
         <Text>Puntaje: {item.puntaje}</Text>
-        <Text>Tiempo: {item.tiempo}</Text>
+        <Text>Tiempo: {item.tiempo} seg.</Text>
       </TouchableOpacity>
     );
   };
@@ -136,7 +155,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   card: {
-    width: 110,
+    width: 130,
     height: 100,
     marginRight: 12,
     borderRadius: 12,
