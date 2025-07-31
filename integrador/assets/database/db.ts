@@ -6,7 +6,7 @@ let dbPromise: Promise<IDBPDatabase> | null = null;
 const DB_NAME = 'AppDB';
 // ¡IMPORTANTE! Asegúrate de que esta versión sea MAYOR a la última que usaste.
 // Por ejemplo, si tu última versión fue 10, pon 11.
-const DB_VERSION = 20;
+const DB_VERSION = 21;
 
 export const setupIndexedDB = async (): Promise<void> => {
   dbPromise = openDB(DB_NAME, DB_VERSION, {

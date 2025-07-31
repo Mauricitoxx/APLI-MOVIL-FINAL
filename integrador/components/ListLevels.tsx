@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Button, Dimensions } from 'react-native';
-import { NivelXUsuario } from '@/assets/database/type';
+import { NivelXUsuario } from '@/assets/database/type'; // Ensure correct path
 import { useUser } from '@/context/UserContext';
 import { useNavigation } from '@react-navigation/native'; // Import useNavigation here
+import { NativeStackNavigationProp } from '@react-navigation/native-stack'; // Import for better type safety
+import { RootStackParamList } from '../Game'; // Ensure correct path to RootStackParamList
 
 const { width } = Dimensions.get('window');
 const SPACING = 10;
@@ -11,8 +13,8 @@ const ITEM_SIZE_HOME_4_COLUMNS = (width - SPACING * 5) / 4;
 
 interface Props {
   niveles: any[];
-  navigation: any;
-  onGameResult: (nivelActualizado: NivelXUsuario | null) => void; // <--- ADD THIS PROP
+  navigation: NativeStackNavigationProp<RootStackParamList>; // Use specific type
+  onGameResult: (nivelActualizado: NivelXUsuario | null) => void; // <--- ADDED PROP
 }
 
 const ListLevels: React.FC<Props> = ({ niveles, navigation, onGameResult }) => { // <--- Receive the prop
@@ -38,7 +40,7 @@ const ListLevels: React.FC<Props> = ({ niveles, navigation, onGameResult }) => {
     // Navigate to Game and pass the onGameResult callback from Home.tsx
     navigation.navigate('Game', {
       nivel: nivelSeleccionado, // Pass the complete level object
-      onResultado: onGameResult, // <--- Pass the callback here
+      onResultado: onGameResult, // <--- PASS THE CALLBACK HERE
     });
   };
 
@@ -56,7 +58,7 @@ const ListLevels: React.FC<Props> = ({ niveles, navigation, onGameResult }) => {
 
     return (
       <TouchableOpacity
-        key={item.idForFlatList} // Use item.idForFlatList as key
+        key={item.idForFlatList} // Use item.idForFlatList as key (String(IdNivel) from Home)
         style={[styles.card, getCardStyle()]}
         disabled={bloqueado}
         onPress={() => handleSeleccionarNivel(item)}

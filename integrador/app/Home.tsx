@@ -1,25 +1,26 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, Button, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
 import Countdown from '@/components/CountDown';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack'; // Import for better type safety
 import { useUser } from '@/context/UserContext';
 import { getNivelesXUsuario, getUsuarioPorId, getVidas, updateNivelXUsuario, insertNivelXUsuario, obtenerPalabraLongitud } from '@/assets/database/query';
 import ListLevels from '@/components/ListLevels';
-import { NivelXUsuario } from '@/assets/database/type';
+import { NivelXUsuario } from '@/assets/database/type'; // Ensure correct path
+import { RootStackParamList } from '../Game'; // Ensure correct path to RootStackParamList
 import Footer from '@/components/Footer';
 
 
 export default function Home() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { userId } = useUser();
 
   const [monedas, setMonedas] = useState<number | undefined>(undefined);
   const [vidas, setVidas] = useState<number | undefined>(undefined);
 
   const [nivelesParaListLevelsHome, setNivelesParaListLevelsHome] = useState<any[]>([]);
-
 
   const [selected, setSelected] = useState<'verde' | 'amarilla' | 'gris'>('verde');
   const options = {
@@ -61,16 +62,18 @@ export default function Home() {
     console.log('Home: handleGameResult received:', nivelActualizado);
     if (!userId) {
       console.error('Home: userId is null in handleGameResult. Cannot save level.');
+      Alert.alert('Error', 'Usuario no identificado. No se pudo guardar el nivel.');
       return;
     }
 
-    if (nivelActualizado && nivelActualizado.IdNivel) { // Ensure IdNivel is present
+    if (nivelActualizado && nivelActualizado.IdNivel) {
       const longitudPalabra = 3 + Math.floor(nivelActualizado.IdNivel / 5);
       
       try {
         let finalNivelToSave: NivelXUsuario;
 
-        const existingLevelInDb = (await getNivelesXUsuario(userId)).find(
+        const allUserLevels = await getNivelesXUsuario(userId);
+        const existingLevelInDb = allUserLevels.find(
           n => n.IdNivel === nivelActualizado.IdNivel && n.IdUsuario === userId
         );
 
@@ -126,7 +129,7 @@ export default function Home() {
           }
         }
 
-        console.log('Home: Level operation complete. Re-fetching levels and user data.');
+        console.log('Home: Level operation complete. Re-fetching levels and user data to update UI.');
         fetchAndPrepareLevelsForHome();
         fetchData();
       } catch (err) {
@@ -138,7 +141,6 @@ export default function Home() {
       fetchAndPrepareLevelsForHome();
     }
   }, [userId, fetchData]);
-
 
   const fetchAndPrepareLevelsForHome = useCallback(async () => {
     if (!userId) {
@@ -199,8 +201,7 @@ export default function Home() {
 
         levelsToShow.push({
           id: rawNivel?.id ?? null,
-          // *** KEY CHANGE HERE: Use IdNivel directly for idForFlatList ***
-          idForFlatList: String(i), // This is the actual conceptual level number, which is unique
+          idForFlatList: String(i),
           level: i,
           puntaje: rawNivel?.puntaje ?? 0,
           tiempo: rawNivel?.tiempo ?? 60,
@@ -252,6 +253,16 @@ export default function Home() {
             <Text style={styles.currencyText}>❤️ {vidas ?? 'Cargando...'}</Text>
           </View>
         </View>
+
+        {/* Removed: New button to navigate to LevelsScreen */}
+        {/*
+        <TouchableOpacity 
+          style={styles.goToLevelsButton} 
+          onPress={() => navigation.navigate('Levels', { onGameResultFromHome: handleGameResult })}
+        >
+          <Text style={styles.goToLevelsButtonText}>Ver Todos los Niveles</Text>
+        </TouchableOpacity>
+        */}
 
         {/* Niveles - Now pass the processed levels to ListLevels, and the handleGameResult callback */}
         <Text style={styles.sectionTitle}>Niveles</Text>
@@ -483,4 +494,18 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
   },
+  // Removed styles for goToLevelsButton as the button itself is removed
+  // goToLevelsButton: {
+  //   backgroundColor: '#4CAF50',
+  //   padding: 10,
+  //   borderRadius: 8,
+  //   alignItems: 'center',
+  //   marginBottom: 15,
+  //   marginHorizontal: 10,
+  // },
+  // goToLevelsButtonText: {
+  //   color: '#fff',
+  //   fontWeight: 'bold',
+  //   fontSize: 16,
+  // },
 });
