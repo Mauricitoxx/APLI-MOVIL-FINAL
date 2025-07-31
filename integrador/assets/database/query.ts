@@ -114,7 +114,6 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
   }
 };
 
-
 //Funciones para HOME
 //Obtener informacion total de las herramientas que tiene un usuario
 export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> => {
@@ -156,6 +155,22 @@ export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuar
   const store = tx.objectStore('NivelXUsuario');
   const index = store.index('IdUsuario')
   return await index.getAll(idUsuario)
+}
+
+//Ingresar una vida al terminar el temporizador (esta es una accion para todos los usuario)
+export const otorgarVida = async () => {
+  const db = await getDB();
+  const tx = db.transaction('Usuario', 'readwrite');
+  const store = tx.objectStore('Usuario');
+  const allUsers = await store.getAll();
+
+  for (const user of allUsers) {
+    user.vida += 1;
+    await store.put(user);
+  }
+
+  await tx.done;
+  
 }
 
 //Niveles y Juego
