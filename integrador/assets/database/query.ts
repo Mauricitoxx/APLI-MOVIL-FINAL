@@ -1,115 +1,8 @@
-import { openDB, type IDBPDatabase } from 'idb';
+import { getDatabase } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
-let dbPromise: Promise<IDBPDatabase> | null = null;
-
-const DB_NAME = 'AppDB';
-const DB_VERSION = 21;
-
-export const setupIndexedDB = async (): Promise<void> => {
-  dbPromise = openDB(DB_NAME, DB_VERSION, {
-    upgrade(database, oldVersion, newVersion, transaction) {
-      console.log(`DB Upgrade: from ${oldVersion} to ${newVersion}`);
-
-      if (oldVersion < 1) {
-        console.log('DB Upgrade: Creating initial stores (Version 1)');
-        const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
-        usuarioStore.createIndex('mail', 'mail', { unique: true });
-        usuarioStore.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
-        usuarioStore.createIndex('id', 'id', { unique: true });
-
-        database.createObjectStore('Nivel', { keyPath: 'id', autoIncrement: true });
-
-        const nivelXUsuarioStore = database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
-        nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
-        nivelXUsuarioStore.createIndex('IdUsuario', 'IdUsuario');
-
-        const herramientaStore = database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
-        herramientaStore.createIndex('IdUsuario', 'IdUsuario');
-
-        const vidaStore = database.createObjectStore('Vida', { keyPath: 'id', autoIncrement: true });
-        vidaStore.createIndex('IdUsuario', 'IdUsuario');
-
-        const palabrasStore = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
-        palabrasStore.createIndex('palabra', 'palabra', { unique: true });
-      }
-
-      if (oldVersion < 9 && newVersion >= 9 && database.objectStoreNames.contains('NivelXUsuario')) {
-          console.log('DB Upgrade: Adding/Recreating unique index for NivelXUsuario (Version 9)');
-          const nivelXUsuarioStore = transaction.objectStore('NivelXUsuario');
-          if (nivelXUsuarioStore.indexNames.contains('IdUsuario_IdNivel')) {
-              nivelXUsuarioStore.deleteIndex('IdUsuario_IdNivel');
-          }
-          nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
-      }
-    }
-  });
-
-  const db = await dbPromise;
-
-  const tx = db.transaction(['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'], 'readwrite');
-
-  const insertIfEmpty = async (storeName: string, defaultItems: any[]) => {
-    const store = tx.objectStore(storeName);
-    const count = await store.count();
-    if (count === 0) {
-      console.log(`Inserting default items into ${storeName}`);
-      for (const item of defaultItems) {
-        try {
-          await store.add(item);
-        } catch (e: any) {
-          console.warn(`Could not add item to ${storeName}:`, item, e.name, e.message);
-          if (e.name === 'ConstraintError') {
-              console.warn(`Likely duplicate key for ${storeName}:`, item);
-          }
-        }
-      }
-    } else {
-      console.log(`${storeName} already has ${count} items.`);
-    }
-  };
-
-  await insertIfEmpty('Usuario', [
-    { nombre_completo: 'Admin', nombre_usuario: 'admin', mail: 'admin@mail.com', contrasena: 'admin', racha: 0, monedas: 0 },
-    { nombre_completo: 'Test User', nombre_usuario: 'test', mail: 'test@mail.com', contrasena: '1234', racha: 0, monedas: 0 }
-  ]);
-
-  await insertIfEmpty('Nivel', [{ recompensa: 100 }, { recompensa: 200 }]);
-
-  await insertIfEmpty('Herramienta', [
-    { tipo: 'pasa', cantidad: 0, IdUsuario: 1 },
-    { tipo: 'ayuda', cantidad: 0, IdUsuario: 1 },
-    { tipo: 'pasa', cantidad: 3, IdUsuario: 2 },
-    { tipo: 'ayuda', cantidad: 0, IdUsuario: 2 }
-  ]);
-
-  await insertIfEmpty('Vida', [
-    { cantidad: 5, IdUsuario: 1 },
-    { cantidad: 3, IdUsuario: 2 }
-  ]);
-
-  await insertIfEmpty('Palabras', [
-    { palabra: 'ejemplo' }, { palabra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' },
-    { palabra: 'luz' }, { palabra: 'ojo' }, { palabra: 'voz' }, { palabra: 'te' }, { palabra: 'pan' },
-    { palabra: 'rio' }, { palabra: 'sal' }, { palabra: 'casa' }, { palabra: 'luna' }, { palabra: 'flor' },
-    { palabra: 'toro' }, { palabra: 'piel' }, { palabra: 'cine' }, { palabra: 'tren' }, { palabra: 'mesa' },
-    { palabra: 'vino' }, { palabra: 'cielo' }, { palabra: 'perro' }, { palabra: 'planta' }, { palabra: 'nube' },
-    { palabra: 'sueño' }, { palabra: 'papel' }, { palabra: 'reloj' }, { palabra: 'playa' }, { palabra: 'viento' },
-    { palabra: 'amigo' }, { palabra: 'bosque' }, { palabra: 'calor' }, { palabra: 'camino' }, { palabra: 'tierra' },
-    { palabra: 'mirar' }, { palabra: 'mundo' },
-  ]);
-  await tx.done;
-};
-
-export const getDB = async (): Promise<IDBPDatabase> => {
-  if (!dbPromise) {
-    throw new Error('La base de datos no está inicializada. Llama a setupIndexedDB() primero.');
-  }
-  return await dbPromise;
-};
-
 export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const tx = db.transaction('Palabras', 'readonly');
   const store = tx.objectStore('Palabras');
 
@@ -128,7 +21,7 @@ export const obtenerPalabraLongitud = async (longitud: number): Promise<string |
 }
 
 export const validarUsuario = async (email: string, password: string): Promise<Usuario | null> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const tx = db.transaction('Usuario', 'readonly');
   const store = tx.objectStore('Usuario');
   const allUsers = await store.getAll();
@@ -142,7 +35,7 @@ export const validarUsuario = async (email: string, password: string): Promise<U
 };
 
 export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
-  const db = await getDB();
+  const db = await getDatabase();
 
   const tempTx = db.transaction('Usuario', 'readonly');
   const usuarioStore = tempTx.objectStore('Usuario');
@@ -220,7 +113,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
 };
 
 export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const tx = db.transaction('Herramienta', 'readonly');
   const store = tx.objectStore('Herramienta');
   const index = store.index('IdUsuario')
@@ -230,7 +123,7 @@ export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> 
 }
 
 export const getVidas = async (idUsuario: number): Promise<Vida[]> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const tx = db.transaction('Vida', 'readonly');
   const store = tx.objectStore('Vida');
   const index = store.index('IdUsuario');
@@ -240,7 +133,7 @@ export const getVidas = async (idUsuario: number): Promise<Vida[]> => {
 }
 
 export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const tx = db.transaction('Usuario', 'readonly');
   const store = tx.objectStore('Usuario');
   const usuario = await store.get(id);
@@ -249,18 +142,24 @@ export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> 
 }
 
 export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuario[]> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const tx = db.transaction('NivelXUsuario', 'readonly');
   const store = tx.objectStore('NivelXUsuario');
   const index = store.index('IdUsuario')
-  const levels = await index.getAll(idUsuario);
-  await tx.done;
-  console.log("query.ts: getNivelesXUsuario - Niveles obtenidos (con ID de IndexedDB?):", levels);
+  let levels: NivelXUsuario[] = [];
+  try {
+    levels = await index.getAll(idUsuario);
+    console.log("query.ts: getNivelesXUsuario - Niveles obtenidos de DB para usuario", idUsuario, ":", levels);
+  } catch (error) {
+    console.error(`query.ts: Error al obtener niveles para usuario ${idUsuario} desde la DB:`, error);
+  } finally {
+    await tx.done;
+  }
   return levels;
 }
 
 export const insertNivelXUsuario = async (idUsuario: number, IdNivel: number, palabra: string): Promise<NivelXUsuario | null> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const tx = db.transaction('NivelXUsuario', 'readwrite');
   const store = tx.objectStore('NivelXUsuario');
   
@@ -272,7 +171,7 @@ export const insertNivelXUsuario = async (idUsuario: number, IdNivel: number, pa
       return existingRecord;
     }
   } catch (error: any) {
-    console.error(`query.ts: Error al buscar nivel existente antes de insertar (Index search):`, error.name, error.message);
+    console.error(`query.ts: Error al buscar nivel existente antes de insertar (búsqueda por índice):`, error.name, error.message);
     await tx.done;
     return null; 
   }
@@ -294,14 +193,14 @@ export const insertNivelXUsuario = async (idUsuario: number, IdNivel: number, pa
     console.log(`query.ts: insertNivelXUsuario - Nuevo NivelXUsuario (IdNivel: ${IdNivel}) creado para usuario ${idUsuario}. ID de IndexedDB: ${idGenerado}`);
     return insertedRecord;
   } catch (error: any) {
-    console.error(`query.ts: Error al añadir nuevo NivelXUsuario ${IdNivel} para usuario ${idUsuario} (Add operation):`, error.name, error.message, error);
+    console.error(`query.ts: Error al añadir nuevo NivelXUsuario ${IdNivel} para usuario ${idUsuario} (operación de adición):`, error.name, error.message, error);
     try { tx.abort(); } catch (abortError) { console.error("Error al intentar abortar transacción:", abortError); }
     return null;
   }
 }
 
 export const updateNivelXUsuario = async (nivelActualizado: NivelXUsuario): Promise<void> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const tx = db.transaction('NivelXUsuario', 'readwrite');
   const store = tx.objectStore('NivelXUsuario');
 
@@ -311,7 +210,7 @@ export const updateNivelXUsuario = async (nivelActualizado: NivelXUsuario): Prom
       if (typeof nivelActualizado.id === 'number' && nivelActualizado.id !== null) {
         console.log(`query.ts: updateNivelXUsuario - Actualizando por ID directo: ${nivelActualizado.id}`);
         await store.put(nivelActualizado);
-        console.log(`query.ts: updateNivelXUsuario - Nivel actualizado por ID directo (IndexedDB ID: ${nivelActualizado.id}, IdNivel: ${nivelActualizado.IdNivel})`);
+        console.log(`query.ts: updateNivelXUsuario - Nivel actualizado por ID directo (ID de IndexedDB: ${nivelActualizado.id}, IdNivel: ${nivelActualizado.IdNivel})`);
       } else {
           console.log(`query.ts: updateNivelXUsuario - ID de IndexedDB no proporcionado. Buscando por IdUsuario_IdNivel para Nivel ${nivelActualizado.IdNivel} de Usuario ${nivelActualizado.IdUsuario}.`);
           const index = store.index('IdUsuario_IdNivel');
@@ -320,7 +219,7 @@ export const updateNivelXUsuario = async (nivelActualizado: NivelXUsuario): Prom
           if (existingRecord) {
               const updatedEntry = { ...existingRecord, ...nivelActualizado, id: existingRecord.id };
               await store.put(updatedEntry);
-              console.log(`query.ts: updateNivelXUsuario - Nivel encontrado y actualizado por IdUsuario_IdNivel (IndexedDB ID: ${existingRecord.id}, IdNivel: ${nivelActualizado.IdNivel})`);
+              console.log(`query.ts: updateNivelXUsuario - Nivel encontrado y actualizado por IdUsuario_IdNivel (ID de IndexedDB: ${existingRecord.id}, IdNivel: ${nivelActualizado.IdNivel})`);
           } else {
               console.error(`query.ts: updateNivelXUsuario - ERROR: No se encontró registro existente para actualizar (ni por ID ni por IdUsuario_IdNivel) para Nivel ${nivelActualizado.IdNivel} de Usuario ${nivelActualizado.IdUsuario}. ¡Esto indica un problema de flujo: un nivel debería haber sido insertado antes de intentar actualizarlo!`);
           }
@@ -334,37 +233,37 @@ export const updateNivelXUsuario = async (nivelActualizado: NivelXUsuario): Prom
 }
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const id = await db.add('Nivel', nivel);
   return id;
 };
 
 export const getNiveles = async (): Promise<Nivel[]> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const levels = await db.getAll('Nivel');
   return levels;
 };
 
 export const insertHerramienta = async (herramienta: Herramienta): Promise<number> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const id = await db.add('Herramienta', herramienta);
   return id;
 };
 
 export const insertVida = async (vida: Vida): Promise<number> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const id = await db.add('Vida', vida);
   return id;
 };
 
 export const insertPalabra = async (palabra: Palabras): Promise<number> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const id = await db.add('Palabras', palabra);
   return id;
 };
 
 export const getPalabras = async (): Promise<Palabras[]> => {
-  const db = await getDB();
+  const db = await getDatabase();
   const palabras = await db.getAll('Palabras');
   return palabras;
 };
