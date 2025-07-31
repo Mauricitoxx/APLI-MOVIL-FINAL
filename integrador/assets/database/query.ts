@@ -1,4 +1,4 @@
-import { getDB, setupIndexedDB } from './db';
+import { getDB } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
 export const insertUsuario = async (usuario: Usuario): Promise<number> => {
@@ -150,7 +150,6 @@ export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> 
 }
 
 //Obtener todos los NivelXUsuario segun idUsuario
-
 export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuario[]> => {
   const db = await getDB();
   const tx = db.transaction('NivelXUsuario', 'readonly');
@@ -248,6 +247,39 @@ export const cargarDatosNivel = async (idUsuario: number, idNivel: number, punta
     console.error('Error al cargar datos del nivel:', error);
   }
 };
+
+//Cargar Monedas Ganadas
+export const insertMoneda = async (idUsuario: number, monedas: number) => {
+
+  if (!idUsuario || typeof idUsuario !== 'number') {
+    console.error('Parámetros inválidos:', { idUsuario });
+    return;
+  }
+
+  try {
+    const db = await getDB();
+    const tx = db.transaction('Usuario', 'readwrite');
+    const store = tx.objectStore('Usuario');
+    const index = store.index('id');
+
+    const user : Usuario = await index.get(idUsuario);
+
+    if (!user) {
+      console.error(`No se encontró usuario con IdUsuario=${idUsuario}`);
+      return;
+    }
+
+    user.monedas = (user.monedas ?? 0) + monedas;
+
+    await store.put(user);
+    await tx.done;
+
+    console.log(`Datos actualizados para usuario ${idUsuario}`)
+    
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+  }
+}
 
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {

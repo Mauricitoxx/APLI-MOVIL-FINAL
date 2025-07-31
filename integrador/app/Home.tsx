@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
@@ -50,19 +50,19 @@ export default function Home() {
     }, [userId])
   );
 
-  useEffect(() => {
-    const fetchUsuario = async () => {
-      try {
-        await setupIndexedDB();
-        const datosUsuario = await getUsuarioPorId(userId!);
-        setMonedas(datosUsuario?.monedas ?? 0);
-      } catch (err) {
-        console.error('Error obteniendo usuario:', err);
-        setMonedas(0);
-      }
-    };
-    fetchUsuario();
-  }, [userId]);
+  useFocusEffect(
+    useCallback(() => {
+      const fetchUsuario = async () => {
+        const user = await getUsuarioPorId(userId!);
+        const monedas = await user?.monedas;
+
+        setMonedas(monedas ?? 0);
+
+      };
+      fetchUsuario();
+    }, [userId])
+  );
+
 
   useFocusEffect(
     useCallback(() => {

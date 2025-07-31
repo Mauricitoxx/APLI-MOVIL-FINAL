@@ -1,5 +1,6 @@
-import { cargarDatosNivel, restarVida } from "@/assets/database/query";
+import { cargarDatosNivel, insertMoneda, restarVida } from "@/assets/database/query";
 import { useUser } from "@/context/UserContext";
+import { useNavigation } from "expo-router";
 import React, {useState} from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 
@@ -15,6 +16,8 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     const intentoMax = 5;
     const [inicioJuego] = useState(Date.now());
     const { userId } = useUser();
+    const cerrarModalCallback = React.useRef<() => void | null>(null);
+    const navigation = useNavigation();
 
     const [intentoActual, setIntentoActual] = useState(0);
     const [letrasIngresadas, setLetrasIngresadas] = useState<string[][]>(
@@ -40,17 +43,20 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             const puntos = 100 - intentoActual * 20; 
 
             setTimeout( async () => {
-                mostrarModal(`¡Correcto! Obtuviste ${puntos} puntos en ${tiempoEnSegundos} segundos.`);
+                await mostrarModal(`¡Correcto! Obtuviste ${puntos} puntos en ${tiempoEnSegundos} segundos.`);
                 setResultadoFinal({ ganado: true, puntos, tiempo: tiempoEnSegundos });
                 await cargarDatosNivel(userId!, idNivel, puntos, tiempoEnSegundos);
+
+                await mostrarModal(`Haz obtenido ${puntos} monedas.`)
+                await insertMoneda(userId!, puntos); 
             }, 100);
             return;
         }
 
         if (intentoActual === intentoMax - 1) {
             setTimeout( async () => {
-                mostrarModal(`¡Has perdido!`);
                 setResultadoFinal({ ganado: false });
+                await mostrarModal(`¡Has perdido!`);
                 await cargarDatosNivel(userId!, idNivel, 0, 0);
                 await restarVida(userId!).catch(err => console.error('Error al restar vida:', err));
             }, 100);
@@ -79,16 +85,25 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         }
     }
 
-    const mostrarModal = (mensaje: string) => {
+    const mostrarModal = (mensaje: string): Promise<void> => {
+      return new Promise((resolve) => {
         setMensajeModal(mensaje);
         setVisibleModal(true);
+        cerrarModalCallback.current = resolve;
+      });
     };
 
     const cerrarModal = () => {
         setVisibleModal(false);
+        if (cerrarModalCallback.current) {
+          cerrarModalCallback.current();
+          cerrarModalCallback.current = null;
+        }
+
         if (resultadoFinal) {
-            onGameEnd(resultadoFinal.ganado, resultadoFinal.puntos, resultadoFinal.tiempo);
-            setResultadoFinal(null); 
+          onGameEnd(resultadoFinal.ganado, resultadoFinal.puntos, resultadoFinal.tiempo);
+          setResultadoFinal(null);
+          navigation.goBack();
         }
     };
 
