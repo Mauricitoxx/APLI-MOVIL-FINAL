@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Button, Dimensions } from 'react-native';
 import { NivelXUsuario } from '@/assets/database/type';
 import { useUser } from '@/context/UserContext';
+import { useNavigation } from '@react-navigation/native'; // Import useNavigation here
 
 const { width } = Dimensions.get('window');
 const SPACING = 10;
@@ -11,9 +12,10 @@ const ITEM_SIZE_HOME_4_COLUMNS = (width - SPACING * 5) / 4;
 interface Props {
   niveles: any[];
   navigation: any;
+  onGameResult: (nivelActualizado: NivelXUsuario | null) => void; // <--- ADD THIS PROP
 }
 
-const ListLevels: React.FC<Props> = ({ niveles, navigation }) => {
+const ListLevels: React.FC<Props> = ({ niveles, navigation, onGameResult }) => { // <--- Receive the prop
   const [modalVisible, setModalVisible] = useState(false);
   const [nivelSeleccionado, setNivelSeleccionado] = useState<any | null>(null);
   const { userId } = useUser();
@@ -33,8 +35,10 @@ const ListLevels: React.FC<Props> = ({ niveles, navigation }) => {
 
     setModalVisible(false);
 
+    // Navigate to Game and pass the onGameResult callback from Home.tsx
     navigation.navigate('Game', {
-      nivel: nivelSeleccionado, // Pasa el nivel completo incluyendo el ID real de la DB
+      nivel: nivelSeleccionado, // Pass the complete level object
+      onResultado: onGameResult, // <--- Pass the callback here
     });
   };
 
@@ -52,7 +56,7 @@ const ListLevels: React.FC<Props> = ({ niveles, navigation }) => {
 
     return (
       <TouchableOpacity
-        key={item.idForFlatList} // Usa item.idForFlatList como key
+        key={item.idForFlatList} // Use item.idForFlatList as key
         style={[styles.card, getCardStyle()]}
         disabled={bloqueado}
         onPress={() => handleSeleccionarNivel(item)}
@@ -70,7 +74,7 @@ const ListLevels: React.FC<Props> = ({ niveles, navigation }) => {
         horizontal
         showsHorizontalScrollIndicator={false}
         data={niveles}
-        keyExtractor={(item) => item.idForFlatList.toString()} // Usa item.idForFlatList
+        keyExtractor={(item) => item.idForFlatList.toString()} // Use item.idForFlatList
         renderItem={renderItem}
         contentContainerStyle={styles.listcontainer}
       />
