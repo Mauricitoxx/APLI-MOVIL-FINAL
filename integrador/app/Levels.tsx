@@ -6,7 +6,7 @@ import { Feather } from '@expo/vector-icons';
 import Footer from '@/components/Footer';
 import { useUser } from '@/context/UserContext';
 import { getNivelesXUsuario } from '@/assets/database/query';
-import { NivelXUsuario, RootStackParamList } from '../Game'; // Ensure correct paths for types
+import { NivelXUsuario, RootStackParamList } from '../Game';
 
 const { width } = Dimensions.get('window');
 const SPACING = 10;
@@ -16,11 +16,11 @@ const TOTAL_NIVELES = 30;
 const getBackgroundColor = (status: 'completed' | 'current' | 'locked') => {
   switch (status) {
     case 'completed':
-      return '#2E7D32'; // Verde
+      return '#2E7D32';
     case 'current':
-      return '#FFA000'; // Naranja
+      return '#FFA000';
     case 'locked':
-      return '#333333'; // Gris oscuro
+      return '#333333';
     default:
       return '#333333';
   }
@@ -32,8 +32,8 @@ const getTextColor = (status: 'completed' | 'current' | 'locked') => {
 
 interface LevelTileProps {
   item: NivelXUsuario & { status: string };
-  navigation: any; // Keep `any` for simplicity of navigation object
-  onGameResult: ((nivelActualizado: NivelXUsuario | null) => void) | undefined; // <--- Make it UNDEFINED
+  navigation: any;
+  onGameResult: ((nivelActualizado: NivelXUsuario | null) => void) | undefined;
 }
 
 const LevelTile = ({ item, navigation, onGameResult }: LevelTileProps) => {
@@ -48,7 +48,7 @@ const LevelTile = ({ item, navigation, onGameResult }: LevelTileProps) => {
         if (!isLocked) {
           navigation.navigate('Game', { 
             nivel: item, 
-            onResultado: onGameResult // <--- Pass the potentially undefined callback
+            onResultado: onGameResult 
           });
           console.log(`LevelsScreen LevelTile: Navigating to Nivel ${item.IdNivel} with full object and onResultado callback (may be undefined).`, item);
         } else {
@@ -58,24 +58,19 @@ const LevelTile = ({ item, navigation, onGameResult }: LevelTileProps) => {
       disabled={isLocked}
     >
       <Text style={[styles.levelText, { color: textColor }]}>
-        {isLocked ? <Feather name="lock" size={ITEM_SIZE_LEVELS_SCREEN * 0.6} color={textColor} /> : item.IdNivel}
+        {item.IdNivel}
       </Text>
     </TouchableOpacity>
   );
 };
 
-// Update LevelsScreen component props
-// Make onGameResultFromHome optional in the route params type
 type LevelsScreenProps = NativeStackScreenProps<RootStackParamList, 'Levels'>;
 
 const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
   const { userId } = useUser();
   const [levelsToDisplay, setLevelsToDisplay] = useState<Array<NivelXUsuario & { status: string }>>([]);
 
-  // Get the onGameResult callback from navigation params.
-  // Use optional chaining or a default empty function if it might be undefined.
-  // const onGameResultFromHome = route.params?.onGameResultFromHome; // Safer destructuring
-  const { onGameResultFromHome } = route.params || {}; // Safer destructuring with default empty object
+  const { onGameResultFromHome } = route.params || {};
 
   useFocusEffect(
     React.useCallback(() => {
@@ -132,7 +127,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
         } catch (err) {
           console.error('LevelsScreen: Error fetching and preparing levels:', err);
           setLevelsToDisplay([{
-            id: null, puntaje: 0, tiempo: 60, palabra: null, intento: 0, recompensa_intento: '0',
+            id: null, puntaje: 0, tiempo: 60, palabra: null, intento: 0, recompensa_intento: '',
             IdUsuario: userId, IdNivel: 1, status: 'current'
           }]);
         }
@@ -141,7 +136,6 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
       fetchAndPrepareLevels();
     }, [userId])
   );
-
 
   return (
     <View style={styles.container}>
@@ -153,7 +147,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
             <LevelTile 
               item={item} 
               navigation={navigation} 
-              onGameResult={onGameResultFromHome} // <--- Pass the received callback here
+              onGameResult={onGameResultFromHome} 
             />
           )}
           keyExtractor={(item) => String(item.IdNivel)}
@@ -200,5 +194,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-export default LevelsScreen;

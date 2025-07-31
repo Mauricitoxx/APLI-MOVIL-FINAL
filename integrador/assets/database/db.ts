@@ -4,8 +4,6 @@ import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from 
 let dbPromise: Promise<IDBPDatabase> | null = null;
 
 const DB_NAME = 'AppDB';
-// ¡IMPORTANTE! Asegúrate de que esta versión sea MAYOR a la última que usaste.
-// Por ejemplo, si tu última versión fue 10, pon 11.
 const DB_VERSION = 21;
 
 export const setupIndexedDB = async (): Promise<void> => {
@@ -13,7 +11,7 @@ export const setupIndexedDB = async (): Promise<void> => {
     upgrade(database, oldVersion, newVersion, transaction) {
       console.log(`DB Upgrade: from ${oldVersion} to ${newVersion}`);
 
-      if (oldVersion < 1) { // Creación inicial de todos los stores
+      if (oldVersion < 1) {
         console.log('DB Upgrade: Creating initial stores (Version 1)');
         const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
         usuarioStore.createIndex('mail', 'mail', { unique: true });
@@ -36,7 +34,6 @@ export const setupIndexedDB = async (): Promise<void> => {
         palabrasStore.createIndex('palabra', 'palabra', { unique: true });
       }
 
-      // Asegurar que el índice compuesto único exista para versiones posteriores (ej. desde v9)
       if (oldVersion < 9 && newVersion >= 9 && database.objectStoreNames.contains('NivelXUsuario')) {
           console.log('DB Upgrade: Adding/Recreating unique index for NivelXUsuario (Version 9)');
           const nivelXUsuarioStore = transaction.objectStore('NivelXUsuario');
@@ -78,17 +75,6 @@ export const setupIndexedDB = async (): Promise<void> => {
   ]);
 
   await insertIfEmpty('Nivel', [{ recompensa: 100 }, { recompensa: 200 }]);
-
-  // BLOQUE DE DEPURACIÓN TEMPORAL: NO SE INSERTAN NIVELES COMPLETADOS PARA USUARIOS SEMBRADOS
-  // Esto ayuda a aislar si el problema es con `registrarUsuario` o los datos sembrados.
-  /*
-  await insertIfEmpty('NivelXUsuario', [
-    { puntaje: 10, tiempo: 60, palabra: 'ejemplo', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 },
-    { puntaje: 20, tiempo: 50, palabra: 'casa', intento: 1, recompensa_intento: '60', IdUsuario: 2, IdNivel: 1 },
-    { puntaje: 30, tiempo: 40, palabra: 'luna', intento: 1, recompensa_intento: '70', IdUsuario: 2, IdNivel: 2 },
-    { puntaje: 40, tiempo: 30, palabra: 'flor', intento: 1, recompensa_intento: '80', IdUsuario: 2, IdNivel: 3 }
-  ]);
-  */
 
   await insertIfEmpty('Herramienta', [
     { tipo: 'pasa', cantidad: 0, IdUsuario: 1 },

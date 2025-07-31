@@ -4,14 +4,13 @@ import { Feather } from '@expo/vector-icons';
 import ToolSelector from '@/components/ToolSelector';
 import Countdown from '@/components/CountDown';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack'; // Import for better type safety
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUser } from '@/context/UserContext';
 import { getNivelesXUsuario, getUsuarioPorId, getVidas, updateNivelXUsuario, insertNivelXUsuario, obtenerPalabraLongitud } from '@/assets/database/query';
 import ListLevels from '@/components/ListLevels';
-import { NivelXUsuario } from '@/assets/database/type'; // Ensure correct path
-import { RootStackParamList } from '../Game'; // Ensure correct path to RootStackParamList
+import { NivelXUsuario } from '@/assets/database/type';
+import { RootStackParamList } from '../Game';
 import Footer from '@/components/Footer';
-
 
 export default function Home() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -161,13 +160,11 @@ export default function Home() {
                                     .map(n => n.IdNivel);
       console.log('Home: nivelesIdsCompletados:', nivelesIdsCompletados);
 
-
       const ultimoNivelCompletado = nivelesIdsCompletados.length > 0
                                     ? Math.max(...nivelesIdsCompletados)
                                     : 0;
       let nivelActualAJugar = ultimoNivelCompletado + 1;
       console.log('Home: nivelActualAJugar (nivel a mostrar en amarillo):', nivelActualAJugar);
-
 
       let allRelevantLevelsMap = new Map<number, NivelXUsuario>();
       nivelesExistentesDb.forEach(nivel => {
@@ -235,16 +232,13 @@ export default function Home() {
     }, [fetchAndPrepareLevelsForHome])
   );
 
-
   function capitalize(color: string) {
     return color.charAt(0).toUpperCase() + color.slice(1);
   }
 
-
   return (
     <View style={styles.fullScreenContainer}>
       <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 150 }} horizontal={false} showsVerticalScrollIndicator={true}>
-        {/* Header */}
         <View style={styles.header}>
           <View style={styles.currency}>
             <Text style={styles.currencyText}>💰 {monedas ?? 'Cargando...'}</Text>
@@ -254,17 +248,6 @@ export default function Home() {
           </View>
         </View>
 
-        {/* Removed: New button to navigate to LevelsScreen */}
-        {/*
-        <TouchableOpacity 
-          style={styles.goToLevelsButton} 
-          onPress={() => navigation.navigate('Levels', { onGameResultFromHome: handleGameResult })}
-        >
-          <Text style={styles.goToLevelsButtonText}>Ver Todos los Niveles</Text>
-        </TouchableOpacity>
-        */}
-
-        {/* Niveles - Now pass the processed levels to ListLevels, and the handleGameResult callback */}
         <Text style={styles.sectionTitle}>Niveles</Text>
         {nivelesParaListLevelsHome.length > 0 ? (
           <ListLevels
@@ -276,16 +259,12 @@ export default function Home() {
           <Text style={styles.noLevelsAvailable}>No hay niveles disponibles para mostrar.</Text>
         )}
 
-
-        {/* Próxima vida */}
         <View style={styles.nextLifeBox}>
           <Text style={styles.nextLifeText}><Countdown /></Text>
         </View>
 
-        {/* Herramientas */}
         <ToolSelector />
 
-        {/* Como Jugar */}
         <View style={styles.rulesContainer}>
           <Text style={styles.rulesTitle}>¿Cómo Jugar?</Text>
           <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo número de nivel entre usuarios.</Text>
@@ -331,7 +310,6 @@ export default function Home() {
         </View>
 
       </ScrollView>
-      {/* Botón jugar y Footer */}
       <TouchableOpacity style={styles.playButton}>
         <Text style={styles.playText}>Jugar</Text>
       </TouchableOpacity>
@@ -494,18 +472,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 18,
   },
-  // Removed styles for goToLevelsButton as the button itself is removed
-  // goToLevelsButton: {
-  //   backgroundColor: '#4CAF50',
-  //   padding: 10,
-  //   borderRadius: 8,
-  //   alignItems: 'center',
-  //   marginBottom: 15,
-  //   marginHorizontal: 10,
-  // },
-  // goToLevelsButtonText: {
-  //   color: '#fff',
-  //   fontWeight: 'bold',
-  //   fontSize: 16,
-  // },
 });
