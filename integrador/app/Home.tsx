@@ -1,16 +1,22 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, Button, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import ToolSelector from '@/components/ToolSelector';
-import Countdown from '@/components/CountDown';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUser } from '@/context/UserContext';
-import { getNivelesXUsuario, getUsuarioPorId, getVidas, updateNivelXUsuario, insertNivelXUsuario, obtenerPalabraLongitud } from '@/assets/database/query';
+import {
+  getNivelesXUsuario,
+  getUsuarioPorId,
+  getVidas,
+  updateNivelXUsuario,
+  insertNivelXUsuario,
+  obtenerPalabraLongitud,
+} from '@/assets/database/query';
 import ListLevels from '@/components/ListLevels';
 import { NivelXUsuario } from '@/assets/database/type';
 import { RootStackParamList } from '../Game';
 import Footer from '@/components/Footer';
+import ToolSelector from '@/components/ToolSelector';
+import Countdown from '@/components/CountDown';
 
 export default function Home() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -18,171 +24,93 @@ export default function Home() {
 
   const [monedas, setMonedas] = useState<number | undefined>(undefined);
   const [vidas, setVidas] = useState<number | undefined>(undefined);
-
   const [nivelesParaListLevelsHome, setNivelesParaListLevelsHome] = useState<any[]>([]);
-
   const [selected, setSelected] = useState<'verde' | 'amarilla' | 'gris'>('verde');
+
   const options = {
     verde: {
-      description: 'VERDE significa que la letra está en la palabra y en la posición CORRECTA'
+      description: 'VERDE significa que la letra está en la palabra y en la posición CORRECTA',
     },
     amarilla: {
-      description: 'AMARILLO significa que la letra está presente en la palabra, pero en la posición INCORRECTA'
+      description: 'AMARILLO significa que la letra está presente en la palabra, pero en la posición INCORRECTA',
     },
     gris: {
-      description: 'GRIS significa que la letra NO está presente en la palabra'
+      description: 'GRIS significa que la letra NO está presente en la palabra',
+    },
+  };
+
+  const fetchDataAndPrepareLevels = useCallback(async () => {
+    if (!userId) {
+      console.log('Home: userId es null/undefined, no se pueden obtener datos ni niveles.');
+      // Inicializar con un nivel por defecto si no hay usuario
+      setNivelesParaListLevelsHome([
+        {
+          id: null,
+          idForFlatList: '1',
+          level: 1,
+          puntaje: 0,
+          tiempo: 60,
+          completado: false,
+          disponible: true,
+          bloqueado: false,
+          palabra: null,
+          intento: 0,
+          recompensa_intento: '',
+          IdUsuario: 0,
+          IdNivel: 1,
+        },
+      ]);
+      return;
     }
-  }
 
-  const fetchData = useCallback(async () => {
-    if (!userId) return;
     try {
+      // Obtener datos del usuario (vidas y monedas)
       const vidasData = await getVidas(userId);
-      if (vidasData.length > 0) {
-        setVidas(vidasData[0].cantidad ?? 0);
-      } else {
-        setVidas(0);
-      }
-
+      setVidas(vidasData.length > 0 ? vidasData[0].cantidad ?? 0 : 0);
       const datosUsuario = await getUsuarioPorId(userId);
       setMonedas(datosUsuario?.monedas ?? 0);
-    } catch (err) {
-      console.error('Home: Error fetching user data or lives:', err);
-      setVidas(0);
-      setMonedas(0);
-    }
-  }, [userId]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleGameResult = useCallback(async (nivelActualizado: NivelXUsuario | null) => {
-    console.log('Home: handleGameResult received:', nivelActualizado);
-    if (!userId) {
-      console.error('Home: userId is null in handleGameResult. Cannot save level.');
-      Alert.alert('Error', 'Usuario no identificado. No se pudo guardar el nivel.');
-      return;
-    }
-
-    if (nivelActualizado && nivelActualizado.IdNivel) {
-      const longitudPalabra = 3 + Math.floor(nivelActualizado.IdNivel / 5);
-      
-      try {
-        let finalNivelToSave: NivelXUsuario;
-
-        const allUserLevels = await getNivelesXUsuario(userId);
-        const existingLevelInDb = allUserLevels.find(
-          n => n.IdNivel === nivelActualizado.IdNivel && n.IdUsuario === userId
-        );
-
-        if (existingLevelInDb) {
-          console.log(`Home: Level ${nivelActualizado.IdNivel} already exists in DB (ID: ${existingLevelInDb.id}). Updating.`);
-          finalNivelToSave = {
-            ...existingLevelInDb,
-            puntaje: nivelActualizado.puntaje,
-            tiempo: nivelActualizado.tiempo,
-            intento: nivelActualizado.intento,
-            recompensa_intento: nivelActualizado.recompensa_intento,
-            palabra: existingLevelInDb.palabra || nivelActualizado.palabra,
-          };
-          await updateNivelXUsuario(finalNivelToSave);
-          Alert.alert('Nivel Actualizado', `Nivel ${finalNivelToSave.IdNivel} se ha actualizado.`);
-        } else {
-          console.log(`Home: Level ${nivelActualizado.IdNivel} does NOT exist in DB. Inserting new.`);
-          let palabraAsignada = nivelActualizado.palabra;
-          if (!palabraAsignada) {
-            palabraAsignada = await obtenerPalabraLongitud(longitudPalabra);
-            if (!palabraAsignada) {
-              console.error(`Home: No se encontró palabra para el nivel ${nivelActualizado.IdNivel} (longitud ${longitudPalabra}). No se puede crear el nivel.`);
-              Alert.alert('Error', 'No se pudo asignar una palabra al nivel.');
-              return;
-            }
-          }
-          
-          finalNivelToSave = {
-            ...nivelActualizado,
-            id: null,
-            palabra: palabraAsignada,
-          };
-
-          const insertedNivel = await insertNivelXUsuario(
-            userId,
-            finalNivelToSave.IdNivel,
-            finalNivelToSave.palabra
-          );
-
-          if (insertedNivel) {
-            const updatedInsertedNivel: NivelXUsuario = {
-              ...insertedNivel,
-              puntaje: finalNivelToSave.puntaje,
-              tiempo: finalNivelToSave.tiempo,
-              intento: finalNivelToSave.intento,
-              recompensa_intento: finalNivelToSave.recompensa_intento,
-            };
-            await updateNivelXUsuario(updatedInsertedNivel);
-            Alert.alert('Nivel Completado', `¡Nivel ${updatedInsertedNivel.IdNivel} guardado!`);
-          } else {
-            console.error('Home: Error al insertar el nuevo NivelXUsuario o no se obtuvo el objeto insertado.');
-            Alert.alert('Error', 'No se pudo guardar el nuevo nivel.');
-          }
-        }
-
-        console.log('Home: Level operation complete. Re-fetching levels and user data to update UI.');
-        fetchAndPrepareLevelsForHome();
-        fetchData();
-      } catch (err) {
-        console.error('Home: Error processing game result for level', nivelActualizado?.IdNivel, ':', err);
-        Alert.alert('Error', 'Hubo un problema al guardar el resultado del nivel.');
-      }
-    } else {
-      console.log('Home: Nivel no completado o se volvió sin cambios (nivelActualizado is null). Re-fetching to sync UI.');
-      fetchAndPrepareLevelsForHome();
-    }
-  }, [userId, fetchData]);
-
-  const fetchAndPrepareLevelsForHome = useCallback(async () => {
-    if (!userId) {
-      console.log('Home: userId es null/undefined, no se pueden obtener niveles para ListLevels.');
-      setNivelesParaListLevelsHome([{
-        id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 60,
-        completado: false, disponible: true, bloqueado: false,
-        palabra: null, intento: 0, recompensa_intento: '', IdUsuario: 0, IdNivel: 1
-      }]);
-      return;
-    }
-    try {
+      // Obtener y preparar niveles para ListLevels
       const nivelesExistentesDb: NivelXUsuario[] = await getNivelesXUsuario(userId);
       console.log('Home: Niveles existentes obtenidos de DB (for display):', nivelesExistentesDb);
 
-      const nivelesIdsCompletados = nivelesExistentesDb
-                                    .filter(n => n.puntaje > 0)
-                                    .map(n => n.IdNivel);
-      console.log('Home: nivelesIdsCompletados:', nivelesIdsCompletados);
-
-      const ultimoNivelCompletado = nivelesIdsCompletados.length > 0
-                                    ? Math.max(...nivelesIdsCompletados)
-                                    : 0;
-      let nivelActualAJugar = ultimoNivelCompletado + 1;
-      console.log('Home: nivelActualAJugar (nivel a mostrar en amarillo):', nivelActualAJugar);
-
       let allRelevantLevelsMap = new Map<number, NivelXUsuario>();
       nivelesExistentesDb.forEach(nivel => {
-          allRelevantLevelsMap.set(nivel.IdNivel, nivel);
+        allRelevantLevelsMap.set(nivel.IdNivel, nivel);
       });
 
+      // Asegurarse de que el nivel 1 exista
+      if (!allRelevantLevelsMap.has(1)) {
+        const palabraInicial = await obtenerPalabraLongitud(3);
+        if (palabraInicial) {
+          const nuevoNivel = await insertNivelXUsuario(userId, 1, palabraInicial);
+          if (nuevoNivel) {
+            allRelevantLevelsMap.set(1, nuevoNivel);
+          }
+        }
+      }
+
+      const nivelesIdsCompletados = nivelesExistentesDb
+        .filter(n => n.puntaje > 0)
+        .map(n => n.IdNivel);
+
+      const ultimoNivelCompletado = nivelesIdsCompletados.length > 0
+        ? Math.max(...nivelesIdsCompletados)
+        : 0;
+
+      const nivelActualAJugar = ultimoNivelCompletado + 1;
       let levelsToShow: any[] = [];
       
       for (let i = 1; i <= nivelActualAJugar; i++) {
         const rawNivel = allRelevantLevelsMap.get(i);
         
         let completado = false;
-        let disponible = false; 
+        let disponible = false;
         let bloqueado = true;
 
         if (rawNivel && rawNivel.puntaje > 0) {
           completado = true;
-          disponible = true; 
+          disponible = true;
           bloqueado = false;
         }
 
@@ -190,7 +118,7 @@ export default function Home() {
           disponible = true;
           bloqueado = false;
         } else if (i < nivelActualAJugar && completado) {
-          disponible = true; 
+          disponible = true;
           bloqueado = false;
         } else {
           bloqueado = true;
@@ -215,21 +143,76 @@ export default function Home() {
 
       setNivelesParaListLevelsHome(levelsToShow);
       console.log('Home: Niveles PROCESADOS FINAL para ListLevels (showing only completed + next):', levelsToShow);
-
     } catch (err) {
-      console.error('Home: Error obteniendo y preparando niveles para ListLevels:', err);
-      setNivelesParaListLevelsHome([{
-        id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 60,
-        completado: false, disponible: true, bloqueado: false,
-        palabra: null, intento: 0, recompensa_intento: '', IdUsuario: userId, IdNivel: 1
-      }]);
+      console.error('Home: Error obteniendo y preparando niveles:', err);
+      Alert.alert('Error', 'Hubo un problema al cargar los datos. Intenta de nuevo.');
     }
-  }, [userId]); 
+  }, [userId]);
+
+  const handleGameResult = useCallback(async (nivelActualizado: NivelXUsuario | null) => {
+    console.log('Home: handleGameResult received:', nivelActualizado);
+    if (!userId) {
+      console.error('Home: userId is null in handleGameResult. Cannot save level.');
+      Alert.alert('Error', 'Usuario no identificado. No se pudo guardar el nivel.');
+      return;
+    }
+
+    if (nivelActualizado && nivelActualizado.IdNivel) {
+      try {
+        const allUserLevels = await getNivelesXUsuario(userId);
+        const existingLevelInDb = allUserLevels.find(
+          n => n.IdNivel === nivelActualizado.IdNivel && n.IdUsuario === userId
+        );
+        
+        if (existingLevelInDb) {
+          console.log(`Home: Level ${nivelActualizado.IdNivel} already exists in DB (ID: ${existingLevelInDb.id}). Updating.`);
+          const finalNivelToSave = {
+            ...existingLevelInDb,
+            puntaje: nivelActualizado.puntaje,
+            tiempo: nivelActualizado.tiempo,
+            intento: nivelActualizado.intento,
+            recompensa_intento: nivelActualizado.recompensa_intento,
+            palabra: existingLevelInDb.palabra || nivelActualizado.palabra,
+          };
+          await updateNivelXUsuario(finalNivelToSave);
+          Alert.alert('Nivel Actualizado', `Nivel ${finalNivelToSave.IdNivel} se ha actualizado.`);
+        } else {
+          console.error(`Home: Lógica incorrecta. El nivel ${nivelActualizado.IdNivel} no debería ser un nivel nuevo si ya se está jugando. Se intentará insertar.`);
+          const insertedNivel = await insertNivelXUsuario(
+            userId,
+            nivelActualizado.IdNivel,
+            nivelActualizado.palabra
+          );
+          if (insertedNivel) {
+            const updatedInsertedNivel: NivelXUsuario = {
+              ...insertedNivel,
+              puntaje: nivelActualizado.puntaje,
+              tiempo: nivelActualizado.tiempo,
+              intento: nivelActualizado.intento,
+              recompensa_intento: nivelActualizado.recompensa_intento,
+            };
+            await updateNivelXUsuario(updatedInsertedNivel);
+            Alert.alert('Nivel Completado', `¡Nivel ${updatedInsertedNivel.IdNivel} guardado!`);
+          } else {
+            console.error('Home: Error al insertar el nuevo NivelXUsuario.');
+            Alert.alert('Error', 'No se pudo guardar el nuevo nivel.');
+          }
+        }
+        fetchDataAndPrepareLevels();
+      } catch (err) {
+        console.error('Home: Error processing game result for level', nivelActualizado?.IdNivel, ':', err);
+        Alert.alert('Error', 'Hubo un problema al guardar el resultado del nivel.');
+      }
+    } else {
+      console.log('Home: Nivel no completado o se volvió sin cambios.');
+      fetchDataAndPrepareLevels();
+    }
+  }, [userId, fetchDataAndPrepareLevels]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchAndPrepareLevelsForHome();
-    }, [fetchAndPrepareLevelsForHome])
+      fetchDataAndPrepareLevels();
+    }, [fetchDataAndPrepareLevels])
   );
 
   function capitalize(color: string) {
@@ -260,7 +243,9 @@ export default function Home() {
         )}
 
         <View style={styles.nextLifeBox}>
-          <Text style={styles.nextLifeText}><Countdown /></Text>
+          <Text style={styles.nextLifeText}>
+            <Countdown />
+          </Text>
         </View>
 
         <ToolSelector />
@@ -269,7 +254,6 @@ export default function Home() {
           <Text style={styles.rulesTitle}>¿Cómo Jugar?</Text>
           <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo número de nivel entre usuarios.</Text>
           <Text style={styles.rulesSubtitle}>Cada intento debe ser una palabra válida. En cada ronda el juego pinta cada letra de un color indicando si esa letra se encuentra o no en la palabra y si se encuentra en la posición correcta.</Text>
-
           <View style={styles.rulesButtons}>
             {['verde', 'amarilla', 'gris'].map((color) => (
               <TouchableOpacity
@@ -291,7 +275,6 @@ export default function Home() {
               </TouchableOpacity>
             ))}
           </View>
-
           <View style={styles.ruleDescriptionBox}>
             <Image
               source={
@@ -304,16 +287,13 @@ export default function Home() {
               style={styles.ruleImage}
               resizeMode="contain"
             />
-
             <Text style={styles.ruleDescription}>{options[selected].description}</Text>
           </View>
         </View>
-
       </ScrollView>
       <TouchableOpacity style={styles.playButton}>
         <Text style={styles.playText}>Jugar</Text>
       </TouchableOpacity>
-
       <Footer />
     </View>
   );
@@ -341,9 +321,6 @@ const styles = StyleSheet.create({
   currencyText: {
     color: '#fff',
     fontSize: 15,
-  },
-  section: {
-    marginBottom: 10,
   },
   sectionTitle: {
     color: '#fff',

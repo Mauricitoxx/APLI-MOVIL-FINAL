@@ -1,21 +1,20 @@
 import { openDB, type IDBPDatabase } from 'idb';
-import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
-let dbPromise: Promise<IDBPDatabase> | null = null;
-
+let dbInstance: IDBPDatabase | null = null;
 const DB_NAME = 'AppDB';
-const DB_VERSION = 22;
+const DB_VERSION = 22; 
 
 export const setupDatabase = async (): Promise<void> => {
-  if (dbPromise) return;
+  console.log('Initializing DB...');
+  if (dbInstance) return;
 
-  dbPromise = openDB(DB_NAME, DB_VERSION, {
+  dbInstance = await openDB(DB_NAME, DB_VERSION, {
     upgrade(database, oldVersion, newVersion, transaction) {
       console.log(`DB Upgrade: from ${oldVersion} to ${newVersion}`);
 
       if (oldVersion < 1) {
         console.log('DB Upgrade: Creating initial stores (Version 1)');
-
+        
         const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
         usuarioStore.createIndex('mail', 'mail', { unique: true });
         usuarioStore.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
@@ -38,25 +37,25 @@ export const setupDatabase = async (): Promise<void> => {
       }
 
       if (oldVersion < 9 && newVersion >= 9 && database.objectStoreNames.contains('NivelXUsuario')) {
-          console.log('DB Upgrade: Adding/Recreating unique index for NivelXUsuario (Version 9+ upgrade path)');
-          const nivelXUsuarioStore = transaction.objectStore('NivelXUsuario');
-          if (nivelXUsuarioStore.indexNames.contains('IdUsuario_IdNivel')) {
-              nivelXUsuarioStore.deleteIndex('IdUsuario_IdNivel');
-          }
-          nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
+        console.log('DB Upgrade: Adding/Recreating unique index for NivelXUsuario (Version 9+ upgrade path)');
+        const nivelXUsuarioStore = transaction.objectStore('NivelXUsuario');
+        if (nivelXUsuarioStore.indexNames.contains('IdUsuario_IdNivel')) {
+          nivelXUsuarioStore.deleteIndex('IdUsuario_IdNivel');
+        }
+        nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
       }
     }
   });
 };
 
 export const getDatabase = async (): Promise<IDBPDatabase> => {
-  if (!dbPromise) {
+  if (!dbInstance) {
     await setupDatabase();
-    if (!dbPromise) {
+    if (!dbInstance) {
       throw new Error('La base de datos no está inicializada y el intento de configuración falló.');
     }
   }
-  return await dbPromise;
+  return dbInstance;
 };
 
 export const seedInitialData = async (): Promise<void> => {
@@ -75,7 +74,7 @@ export const seedInitialData = async (): Promise<void> => {
           } catch (e: any) {
             console.warn(`Could not add item to ${storeName}:`, item, e.name, e.message);
             if (e.name === 'ConstraintError') {
-                console.warn(`Likely duplicate key for ${storeName}:`, item);
+              console.warn(`Likely duplicate key for ${storeName}:`, item);
             }
           }
         }
@@ -92,6 +91,11 @@ export const seedInitialData = async (): Promise<void> => {
     ]);
 
     await insertIfEmpty('Nivel', [{ recompensa: 100 }, { recompensa: 200 }]);
+
+    await insertIfEmpty('NivelXUsuario', [
+      { puntaje: 10, tiempo: 60, palabra: 'sol', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 },
+      { puntaje: 80, tiempo: 20, palabra: 'mar', intento: 1, recompensa_intento: '30', IdUsuario: 2, IdNivel: 2 }
+    ]);
 
     await insertIfEmpty('Herramienta', [
       { tipo: 'pasa', cantidad: 0, IdUsuario: 1 },

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Button, Dimensions } from 'react-native';
-import { NivelXUsuario } from '@/assets/database/type';
+import type { NivelXUsuario } from '@/assets/database/type';
 import { useUser } from '@/context/UserContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -11,26 +11,30 @@ const SPACING = 10;
 const ITEM_SIZE_HOME_4_COLUMNS = (width - SPACING * 5) / 4;
 
 interface Props {
-  niveles: any[];
+  niveles: NivelXUsuario[];
   navigation: NativeStackNavigationProp<RootStackParamList>;
   onGameResult: (nivelActualizado: NivelXUsuario | null) => void;
 }
 
 const ListLevels: React.FC<Props> = ({ niveles, navigation, onGameResult }) => {
   const [modalVisible, setModalVisible] = useState(false);
-  const [nivelSeleccionado, setNivelSeleccionado] = useState<any | null>(null);
+  const [nivelSeleccionado, setNivelSeleccionado] = useState<NivelXUsuario | null>(null);
   const { userId } = useUser();
 
-  const handleSeleccionarNivel = (nivel: any) => {
-    if (nivel.disponible) {
+  const handleSeleccionarNivel = (nivel: NivelXUsuario) => {
+    // Determine if the level is available based on your game logic.
+    // For example, if it's the first level or the previous one is completed.
+    const isAvailable = nivel.IdNivel === 1 || niveles.some(n => n.IdNivel === nivel.IdNivel - 1 && n.puntaje > 0);
+
+    if (isAvailable) {
       setNivelSeleccionado(nivel);
       setModalVisible(true);
     } else {
-      console.log(`ListLevels: Nivel ${nivel.level} no está disponible (bloqueado).`);
+      console.log(`ListLevels: Nivel ${nivel.IdNivel} no está disponible (bloqueado).`);
     }
   };
 
-  const confirmarYJugar = async () => {
+  const confirmarYJugar = () => {
     if (!nivelSeleccionado) return;
 
     setModalVisible(false);
@@ -41,26 +45,25 @@ const ListLevels: React.FC<Props> = ({ niveles, navigation, onGameResult }) => {
     });
   };
 
-  const renderItem = ({ item, index }) => {
-    const completado = item.completado;
-    const disponible = item.disponible;
-    const bloqueado = item.bloqueado;
+  const renderItem = ({ item }: { item: NivelXUsuario }) => {
+    const isCompleted = item.puntaje > 0;
+    const isNextLevel = item.IdNivel === niveles.length + 1;
+    const isBlocked = item.IdNivel > 1 && !niveles.some(n => n.IdNivel === item.IdNivel - 1 && n.puntaje > 0);
 
     const getCardStyle = () => {
-      if (completado) return styles.cardCompletado;
-      if (disponible) return styles.cardDisponible;
-      if (bloqueado) return styles.cardBloqueado;
-      return styles.cardDefault;
+      if (isCompleted) return styles.cardCompletado;
+      if (isBlocked) return styles.cardBloqueado;
+      return styles.cardDisponible;
     };
 
     return (
       <TouchableOpacity
-        key={item.idForFlatList}
+        key={item.id?.toString()}
         style={[styles.card, getCardStyle()]}
-        disabled={bloqueado}
+        disabled={isBlocked}
         onPress={() => handleSeleccionarNivel(item)}
       >
-        <Text style={styles.title}>Nivel {item.level}</Text>
+        <Text style={styles.title}>Nivel {item.IdNivel}</Text>
         <Text style={styles.infoText}>Puntaje: {item.puntaje}</Text>
         <Text style={styles.infoText}>Tiempo: {item.tiempo}</Text>
       </TouchableOpacity>
@@ -73,7 +76,7 @@ const ListLevels: React.FC<Props> = ({ niveles, navigation, onGameResult }) => {
         horizontal
         showsHorizontalScrollIndicator={false}
         data={niveles}
-        keyExtractor={(item) => item.idForFlatList.toString()}
+        keyExtractor={(item) => item.id?.toString() || item.IdNivel.toString()}
         renderItem={renderItem}
         contentContainerStyle={styles.listcontainer}
       />
@@ -124,11 +127,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
-  },
-  cardDefault: {
-    backgroundColor: '#AAAAAA',
-    borderWidth: 2,
-    borderColor: '#777777',
   },
   cardCompletado: {
     backgroundColor: '#a5edb6ff',

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Button, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useNavigation } from "@react-navigation/native"; 
 import { NivelXUsuario } from '@/assets/database/type';
 
 export type RootStackParamList = {
@@ -35,7 +36,7 @@ export default function Game({ route, navigation }: Props) {
       ...nivel,
       puntaje: 100,
       tiempo: 45,
-      intento: (nivel.intento || 0) + 1, 
+      intento: (nivel.intento || 0) + 1,
       recompensa_intento: '100',
     };
     console.log('Game: Completar Nivel - Calling onResultado with:', nivelActualizado);
@@ -48,7 +49,7 @@ export default function Game({ route, navigation }: Props) {
       ...nivel,
       puntaje: 0,
       tiempo: 9999,
-      intento: (nivel.intento || 0) + 1, 
+      intento: (nivel.intento || 0) + 1,
       recompensa_intento: '0',
     };
     console.log('Game: No Completar Nivel - Calling onResultado with:', nivelActualizado);
@@ -65,26 +66,26 @@ export default function Game({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Image 
+        <Image
           source={require('../assets/images/statue_of_liberty.jpg')}
           style={styles.cardBackgroundImage}
-          resizeMode="cover" 
+          resizeMode="cover"
         />
         <View style={styles.cardContent}>
-            <Text style={styles.cardTitle}>Nivel {nivel.IdNivel}</Text>
-            
-            <View style={styles.infoContainer}>
-                <Text style={styles.infoTextLabel}>Intentos :</Text>
-                <Text style={styles.infoTextValue}>{nivel.intento || 5}</Text>
-            </View>
-            <View style={styles.infoContainer}>
-                <Text style={styles.infoTextLabel}>Tiempo:</Text>
-                <Text style={styles.infoTextValue}>{nivel.tiempo || 60}</Text>
-            </View>
-            <View style={styles.infoContainer}>
-                <Text style={styles.infoTextLabel}>Puntaje:</Text>
-                <Text style={styles.infoTextValue}>{nivel.puntaje || 0}</Text>
-            </View>
+          <Text style={styles.cardTitle}>Nivel {nivel.IdNivel}</Text>
+          
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoTextLabel}>Intentos :</Text>
+            <Text style={styles.infoTextValue}>{nivel.intento || 5}</Text>
+          </View>
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoTextLabel}>Tiempo:</Text>
+            <Text style={styles.infoTextValue}>{nivel.tiempo || 60}</Text>
+          </View>
+          <View style={styles.infoContainer}>
+            <Text style={styles.infoTextLabel}>Puntaje:</Text>
+            <Text style={styles.infoTextValue}>{nivel.puntaje || 0}</Text>
+          </View>
         </View>
       </View>
 

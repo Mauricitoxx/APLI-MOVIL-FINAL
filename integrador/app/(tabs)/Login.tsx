@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { validarUsuario } from '../../assets/database/query';
-import { setupIndexedDB } from '../../assets/database/db'; // Assuming you have a
-import { useEffect } from 'react';
+
 export default function Login() {
   const [loading, setLoading] = useState(false);
   const [mail, setMail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigation = useNavigation();
-useEffect(() => {
-  setupIndexedDB()
-
-}, []);
 
     const handleLogin = async () => {
       if (!mail || !password) {

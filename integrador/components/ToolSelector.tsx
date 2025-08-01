@@ -3,29 +3,18 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useUser } from '@/context/UserContext';
 
+// Ya no es necesario importar ni llamar a setupDatabase() aquí.
+// La base de datos ya está inicializada en RootLayout.tsx.
+
 export default function ToolSelector() {
   const [selected, setSelected] = useState<'pasa' | 'ayuda'>('pasa');
   const { userId } = useUser();
+  const [loading, setLoading] = useState(true);
 
-  const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }> ({
+  const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }>({
     pasa: 0,
     ayuda: 0,
-  })
-
-  useEffect(() => {
-    const fetchTools = async () => {
-      const herramientas = await getHerramienta(userId!);
-      const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
-
-      herramientas.forEach(h => {
-        contadores[h.tipo] = h.cantidad;
-      });
-
-      setCantidadHerramientas(contadores);
-    };
-
-    fetchTools();
-  }, [userId])
+  });
 
   const options = {
     pasa: {
@@ -35,6 +24,36 @@ export default function ToolSelector() {
       description: 'Te da una pista sobre que letra puede estar en tu palabra',
     },
   };
+
+  useEffect(() => {
+    const cargarDatos = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        // La base de datos ya está lista, solo obtenemos los datos
+        const herramientas = await getHerramienta(userId);
+        const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
+
+        herramientas.forEach(h => {
+          contadores[h.tipo] = h.cantidad;
+        });
+
+        setCantidadHerramientas(contadores);
+      } catch (error) {
+        console.error("Error al cargar las herramientas del usuario:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargarDatos();
+  }, [userId]);
+
+
+  if (loading) return <Text>Cargando herramientas...</Text>;
 
   return (
     <View style={styles.jumpRow}>
@@ -76,9 +95,9 @@ export default function ToolSelector() {
         </View>
 
         <View style={styles.descriptionBox}>
-            <Text style={styles.jumpText}>
+          <Text style={styles.jumpText}>
             {options[selected].description}
-            </Text>
+          </Text>
         </View>
       </View>
 

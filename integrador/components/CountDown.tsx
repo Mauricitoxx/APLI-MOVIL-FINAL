@@ -1,3 +1,4 @@
+import { otorgarVida } from '@/assets/database/query';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
@@ -17,16 +18,19 @@ export default function Countdown() {
       const hours = Math.floor(diffMs / (1000 * 60 * 60));
       const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
 
+      if (hours === 0 && minutes === 0) {
+        otorgarVida();
+      }
+
       const formatted = `${hours.toString().padStart(2, '0')}:${minutes
         .toString()
         .padStart(2, '0')}`;
 
       setTimeLeft(formatted);
     };
-
-    calculateTimeLeft();
-
+    
     const interval = setInterval(calculateTimeLeft, 60 * 1000);
+    calculateTimeLeft();
 
     return () => clearInterval(interval);
   }, []);
