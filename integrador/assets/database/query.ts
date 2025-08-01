@@ -296,6 +296,45 @@ export const insertMoneda = async (idUsuario: number, monedas: number) => {
   }
 }
 
+// Restar herramienta utilizada
+export const restarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda') => {
+
+  if (!idUsuario || typeof idUsuario !== 'number') {
+    console.error('Parámetros inválidos:', { idUsuario });
+    return;
+  }
+
+  try {
+    const db = await getDB();
+    const tx = db.transaction('Herramienta', 'readwrite');
+    const store = tx.objectStore('Herramienta');
+    const index = store.index('IdUsuario');
+
+    const herramientasUsuario: Herramienta[] = await index.getAll(idUsuario);
+    const herramienta = herramientasUsuario.find((h) => h.tipo === tipo);
+
+    if (!herramienta) {
+      console.error(`No se encontró herramienta '${tipo} en usuario ${idUsuario}`);
+      return;
+    }
+
+    if (!herramienta.cantidad || herramienta.cantidad <= 0) {
+      console.warn(`No quedan herramientas de tipo '${tipo}' para el usuario ${idUsuario}`);
+      return;
+    }
+
+    herramienta.cantidad -= 1;
+
+    await store.put(herramienta);
+    await tx.done;
+
+    console.log(`Datos actualizados para usuario ${idUsuario}`)
+    
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+  }
+}
+
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
   const db = await getDB();

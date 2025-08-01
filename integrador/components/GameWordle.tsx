@@ -1,7 +1,7 @@
-import { cargarDatosNivel, insertMoneda, restarVida } from "@/assets/database/query";
+import { cargarDatosNivel, insertMoneda, restarVida, restarHerramienta, getHerramienta } from "@/assets/database/query";
 import { useUser } from "@/context/UserContext";
 import { useNavigation } from "expo-router";
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 
 interface Props {
@@ -16,6 +16,13 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     const intentoMax = 5;
     const [inicioJuego] = useState(Date.now());
     const { userId } = useUser();
+    const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }> ({
+        pasa: 0,
+        ayuda: 0,
+    })
+    const [bloqueado, setBloqueado] = useState(false);
+
+
     const cerrarModalCallback = React.useRef<() => void | null>(null);
     const navigation = useNavigation();
 
@@ -24,6 +31,8 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         Array.from({length: intentoMax}, () => Array(longitud).fill(''))
     );
     const [letraPos, setLetraPos] = useState(0);
+    const [letrasReveladas, setLetrasReveladas] = useState<string[]>([]);
+
     const [resultadoFinal, setResultadoFinal] = useState<{ganado: boolean, puntos?: number, tiempo?: number} | null>(null);
     const [estadoTeclado, setEstadoTeclado] = useState<Record<string, 'correcta' | 'presente' | 'incorrecta' | undefined>>({});
 
@@ -81,7 +90,6 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             }, 100);
             return;
         }
-
         setIntentoActual(intentoActual + 1);
         setLetraPos(0);
     }
@@ -192,19 +200,118 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         }
     };
 
-
     const tecladoFilas = [
       'QWERTYUIOP'.split(''),
       'ASDFGHJKLÑ'.split(''),
       ['⌫', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⏎'],
     ];
 
+    //Herramientas para usar en el juego
+    useEffect(() => {
+        const cargarDatos = async () => {
+          if (!userId) return;
+    
+          const herramientas = await getHerramienta(userId);
+          const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
+    
+          herramientas.forEach(h => {
+            contadores[h.tipo] = h.cantidad;
+          });
+    
+          setCantidadHerramientas(contadores);
+        };
+    
+        cargarDatos();
+    }, [userId]);
+
+    //Uso de herramientas
+    const usarAyudaLetra = async () => {
+
+      if (bloqueado) return;
+      setBloqueado(true);
+
+      if (cantidadHerraminetas["ayuda"] <= 0) {
+        mostrarModal(`Insuficiente cantidad de herramienta. Compre en la tienda para tener más.`);
+        setBloqueado(false);
+        return;
+      }
+
+      const intentoPlano = letrasIngresadas.flat();
+      const letrasNoReveladas = palabraNivel
+        .split('')
+        .filter((letra) => !intentoPlano.includes(letra) && !letrasReveladas.includes(letra));
+
+      if (letrasNoReveladas.length > 0) {
+        const letraRevelada = letrasNoReveladas[0];
+        setLetrasReveladas((prev) => [...prev, letraRevelada]);
+        mostrarModal(`Letra revelada: ${letraRevelada.toUpperCase()}`);
+        
+        await restarHerramienta(userId!, "ayuda");
+
+        const herramientasActualizadas = await getHerramienta(userId!);
+        const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
+        herramientasActualizadas.forEach(h => {
+          contadores[h.tipo] = h.cantidad;
+        });
+
+        
+        setCantidadHerramientas(contadores);
+
+      } else {
+        mostrarModal("No hay más letras por revelar.");
+      }
+    };
+
+    const usarPasaPalabra = async () => {
+
+      if (bloqueado) return;
+      setBloqueado(true);
+
+      if (cantidadHerraminetas["pasa"] === 0) {
+        mostrarModal(`Insuficiente cantidad de herramienta. Compre en la tienda para tener mas.`);
+        setBloqueado(false);
+        return;
+      }
+
+      const letrasUnicas = [...new Set(palabraNivel.split(''))];
+      setLetrasReveladas(prev => [...new Set([...prev, ...letrasUnicas])]);
+
+      await restarHerramienta(userId!, "pasa");
+      const herramientasActualizadas = await getHerramienta(userId!);
+        const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
+        herramientasActualizadas.forEach(h => {
+          contadores[h.tipo] = h.cantidad;
+        });
+
+      setBloqueado(false);
+      setCantidadHerramientas(contadores);
+    }
+
+
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Adivina la palabra</Text>
             <Text style={styles.subtitle}>Tienes {5-intentoActual} intentos</Text>
+
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 10 }}>              
+              {letrasReveladas.map((letra, i) => (
+                <Text key={i} style={{ fontSize: 18, color: 'orange', marginHorizontal: 4 }}>
+                  {letra.toUpperCase()}
+                </Text>
+              ))}
+            </View>
             
             {letrasIngresadas.map(renderFila)}
+
+            <View style={styles.contenedorHerramientas}>
+              <TouchableOpacity onPress={usarAyudaLetra} style={styles.botonHerramienta}>
+                <Text style={styles.textoBoton}>Revelar Letra: {cantidadHerraminetas["ayuda"]} </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity onPress={usarPasaPalabra} style={styles.botonHerramienta}>
+                <Text style={styles.textoBoton}>Pasar Palabra: {cantidadHerraminetas["pasa"]}</Text>
+              </TouchableOpacity>
+            </View>
 
             <View style={styles.keyboard}>
                 {tecladoFilas.map((fila, filaIndex) => (
@@ -273,6 +380,31 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 20,
   },
+  
+  palabraCompleta: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#4CAF50',
+    marginVertical: 10,
+    textAlign: 'center',
+  },
+  contenedorHerramientas: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginVertical: 10,
+  },
+  botonHerramienta: {
+    backgroundColor: '#00589fff',
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderRadius: 10,
+    margin: 5,
+  },
+  textoBoton: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+
   cell: {
     width: 55,
     height: 55,
