@@ -1,208 +1,72 @@
 import { getDB } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
-export const insertUsuario = async (usuario: Usuario): Promise<number> => {
-  const db = await getDB();
-  return db.add('Usuario', usuario);
-};
+// --- Funciones de Lógica del Juego ---
 
-//Seleccion de Palabras
+/**
+ * Obtiene una palabra aleatoria de una longitud específica de la base de datos.
+ * @param longitud La longitud de la palabra a buscar.
+ * @returns La palabra encontrada o null si no hay palabras de esa longitud.
+ */
 export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
   const db = await getDB();
   const tx = db.transaction('Palabras', 'readonly');
   const store = tx.objectStore('Palabras');
 
   const todasLasPalabras = await store.getAll();
+  await tx.done;
 
+  console.log(`query.ts: Buscando palabra con longitud: ${longitud}`);
   const palabrasFiltradas = todasLasPalabras.filter(p => p.palabra.length === longitud);
 
-  if (palabrasFiltradas.length === 0) return null;
+  if (palabrasFiltradas.length === 0) {
+    console.warn(`query.ts: No se encontraron palabras con longitud ${longitud}.`);
+    return null;
+  }
 
   const indiceAleatorio = Math.floor(Math.random() * palabrasFiltradas.length);
   return palabrasFiltradas[indiceAleatorio].palabra;
-}
-
-// Login y Registrar
-export const validarUsuario = async (email: string, password: string): Promise<Usuario | null> => {
-  const db = await getDB();
-  const tx = db.transaction('Usuario', 'readonly');
-  const store = tx.objectStore('Usuario');
-  const allUsers = await store.getAll();
-
-  const user = allUsers.find(
-    user => user.mail === email && user.contrasena === password
-  );
-
-  return user ?? null;
 };
 
-export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
-  const db = await getDB();
-
-  // Validaciones antes de abrir la transacción
-  const tempTx = db.transaction(['Usuario', 'Palabras'], 'readonly');
-  const usuarioStore = tempTx.objectStore('Usuario');
-
-  const mailIndex = usuarioStore.index('mail');
-  const usernameIndex = usuarioStore.index('nombre_usuario');
-
-  const [existeMail, existeUsername] = await Promise.all([
-    mailIndex.get(nuevoUsuario.mail),
-    usernameIndex.get(nuevoUsuario.nombre_usuario)
-  ]);
-
-  if (existeMail) {
-    return { ok: false, error: 'El correo ya está registrado' };
+/**
+ * Carga las monedas ganadas a un usuario.
+ * @param idUsuario El ID del usuario.
+ * @param monedas La cantidad de monedas a agregar.
+ */
+export const insertMoneda = async (idUsuario: number, monedas: number) => {
+  if (!idUsuario || typeof idUsuario !== 'number') {
+    console.error('Parámetros inválidos:', { idUsuario });
+    return;
   }
-
-  if (existeUsername) {
-    return { ok: false, error: 'El nombre de usuario ya está en uso' };
-  }
-
-  const palabraInicial = await obtenerPalabraLongitud(3);
-  if (!palabraInicial) {
-    return { ok: false, error: 'No hay palabras con esa longitud en la base de datos' };
-  }
-
-  // Solo después de validar, abrimos la transacción write
-  const tx = db.transaction(['Usuario', 'NivelXUsuario', 'Herramienta', 'Vida'], 'readwrite');
 
   try {
-    const usuarioStore = tx.objectStore('Usuario');
-    const nivelXUsuarioStore = tx.objectStore('NivelXUsuario');
-    const herramientaStore = tx.objectStore('Herramienta');
-    const vidaStore = tx.objectStore('Vida');
+    const db = await getDB();
+    const tx = db.transaction('Usuario', 'readwrite');
+    const store = tx.objectStore('Usuario');
+    
+    const user = await store.get(idUsuario);
 
-    const idUsuario = await usuarioStore.add({
-      ...nuevoUsuario,
-      racha: 0,
-      monedas: 0
-    });
+    if (!user) {
+      console.error(`No se encontró usuario con IdUsuario=${idUsuario}`);
+      return;
+    }
 
-    await vidaStore.add({
-      cantidad: 3,
-      IdUsuario: idUsuario
-    });
+    user.monedas = (user.monedas ?? 0) + monedas;
 
-    await herramientaStore.add({
-      tipo: 'pasa',
-      cantidad: 0,
-      IdUsuario: idUsuario
-    });
-
-    await herramientaStore.add({
-      tipo: 'ayuda',
-      cantidad: 0,
-      IdUsuario: idUsuario
-    });
-
-    await nivelXUsuarioStore.add({
-      puntaje: 0,
-      tiempo: 60,
-      palabra: palabraInicial,
-      intento: 0,
-      recompensa_intento: '0',
-      IdUsuario: idUsuario,
-      IdNivel: 1
-    });
-
+    await store.put(user);
     await tx.done;
-    return { ok: true };
+
+    console.log(`Datos actualizados para usuario ${idUsuario}`)
+    
   } catch (error) {
-    console.error('Error en transacción:', error);
-    return { ok: false, error: 'Error inesperado al registrar usuario' };
+    console.error('Error al cargar datos:', error);
   }
 };
 
-//Funciones para HOME
-//Obtener informacion total de las herramientas que tiene un usuario
-export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> => {
-  const db = await getDB();
-  const tx = db.transaction('Herramienta', 'readonly');
-  const store = tx.objectStore('Herramienta');
-  const index = store.index('IdUsuario')
-  return await index.getAll(idUsuario)
-}
-//Obtener informacion total de las vidas que tiene un usuario
-export const getVidas = async (idUsuario: number): Promise<Vida[]> => {
-  const db = await getDB();
-
-  const tx = db.transaction('Vida', 'readonly');
-  const store = tx.objectStore('Vida');
-
-  const index = store.index('IdUsuario');
-  const result = await index.getAll(idUsuario);
-  return result;
-}
-
-//Obtener informacion total del usuario
-export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> => {
-  const db = await getDB();
-
-  const tx = db.transaction('Usuario', 'readonly');
-  const store = tx.objectStore('Usuario');
-
-  const usuario = await store.get(id);
-  await tx.done;
-
-  return usuario ?? null;
-}
-
-//Obtener todos los NivelXUsuario segun idUsuario
-export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuario[]> => {
-  const db = await getDB();
-  const tx = db.transaction('NivelXUsuario', 'readonly');
-  const store = tx.objectStore('NivelXUsuario');
-  const index = store.index('IdUsuario')
-  return await index.getAll(idUsuario)
-}
-
-//Ingresar una vida al terminar el temporizador (esta es una accion para todos los usuario)
-export const otorgarVida = async () => {
-  const db = await getDB();
-  const tx = db.transaction('Usuario', 'readwrite');
-  const store = tx.objectStore('Usuario');
-  const allUsers = await store.getAll();
-
-  for (const user of allUsers) {
-    user.vida += 1;
-    await store.put(user);
-  }
-
-  await tx.done;
-  
-}
-
-//Niveles y Juego
-//Crear un nuevo nivel por usuario
-export const insertNivelXUsuario = async (idUsuario: number) => {
-  const db = await getDB();
-  const nivelesUsuario = await db.getAllFromIndex('NivelXUsuario', 'IdUsuario', idUsuario);
-  const maxNivel = nivelesUsuario.length > 0
-    ? Math.max(...nivelesUsuario.map(n => n.IdNivel))
-    : 0;
-  const nuevoNivel = maxNivel + 1;
-
-  const longitudPalabra = 3 + Math.floor(nuevoNivel / 5);
-
-  const palabra = await obtenerPalabraLongitud(longitudPalabra);
-
-  const nuevoRegistro: NivelXUsuario = {
-    puntaje: 0,
-    tiempo: 0,
-    palabra,
-    intento: 0,
-    recompensa_intento: '',
-    IdUsuario: idUsuario,
-    IdNivel: nuevoNivel,
-  };
-
-  const idGenerado = await db.add('NivelXUsuario', nuevoRegistro);
-  return {...nuevoRegistro, id: idGenerado as number}
-
-}
-
-//Modificar vidas cuando el jugador pierde
+/**
+ * Resta una vida al usuario.
+ * @param idUsuario El ID del usuario.
+ */
 export const restarVida = async (idUsuario: number) => {
   if (!idUsuario || typeof idUsuario !== 'number') {
     console.error('idUsuario inválido:', idUsuario);
@@ -225,77 +89,6 @@ export const restarVida = async (idUsuario: number) => {
   }
 };
 
-//Cargar los nuevos datos al nivel jugado
-export const cargarDatosNivel = async (idUsuario: number, idNivel: number, puntaje: number, tiempo: number) => {
-  if (!idNivel || typeof idNivel !== 'number' || !idUsuario || typeof idUsuario !== 'number') {
-    console.error('Parámetros inválidos:', { idUsuario, idNivel });
-    return;
-  }
-
-  if (puntaje <= 0) {
-    console.log(`Nivel ${idNivel} no completado correctamente`);
-  }
-
-  try {
-    const db = await getDB();
-    const tx = db.transaction('NivelXUsuario', 'readwrite');
-    const store = tx.objectStore('NivelXUsuario');
-    const index = store.index('IdUsuario_IdNivel');
-
-    const nivel: NivelXUsuario = await index.get([idUsuario, idNivel]);
-
-    if (!nivel) {
-      console.error(`No se encontró nivel con IdNivel=${idNivel}`);
-      return;
-    }
-
-    nivel.puntaje = puntaje;
-    nivel.tiempo = tiempo;
-    nivel.intento = nivel.intento + 1;
-
-    await store.put(nivel);
-    await tx.done;
-
-    console.log(`Datos actualizados para usuario ${idUsuario}, nivel ${idNivel}`)
-    
-  } catch (error) {
-    console.error('Error al cargar datos del nivel:', error);
-  }
-};
-
-//Cargar Monedas Ganadas
-export const insertMoneda = async (idUsuario: number, monedas: number) => {
-
-  if (!idUsuario || typeof idUsuario !== 'number') {
-    console.error('Parámetros inválidos:', { idUsuario });
-    return;
-  }
-
-  try {
-    const db = await getDB();
-    const tx = db.transaction('Usuario', 'readwrite');
-    const store = tx.objectStore('Usuario');
-    const index = store.index('id');
-
-    const user : Usuario = await index.get(idUsuario);
-
-    if (!user) {
-      console.error(`No se encontró usuario con IdUsuario=${idUsuario}`);
-      return;
-    }
-
-    user.monedas = (user.monedas ?? 0) + monedas;
-
-    await store.put(user);
-    await tx.done;
-
-    console.log(`Datos actualizados para usuario ${idUsuario}`)
-    
-  } catch (error) {
-    console.error('Error al cargar datos:', error);
-  }
-}
-
 // Restar herramienta utilizada
 export const restarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda') => {
 
@@ -314,7 +107,7 @@ export const restarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda
     const herramienta = herramientasUsuario.find((h) => h.tipo === tipo);
 
     if (!herramienta) {
-      console.error(`No se encontró herramienta '${tipo} en usuario ${idUsuario}`);
+      console.error(`No se encontró herramienta '${tipo}' en usuario ${idUsuario}`);
       return;
     }
 
@@ -335,47 +128,234 @@ export const restarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda
   }
 }
 
-
-export const insertNivel = async (nivel: Nivel): Promise<number> => {
+/**
+ * Carga los datos de un nivel al finalizar el juego.
+ * @param idUsuario El ID del usuario.
+ * @param idNivel El ID del nivel.
+ * @param puntaje El puntaje obtenido.
+ * @param tiempo El tiempo utilizado.
+ */
+export const cargarDatosNivel = async (idUsuario: number, idNivel: number, puntaje: number, tiempo: number) => {
   const db = await getDB();
-  return db.add('Nivel', nivel);
+  const tx = db.transaction('NivelXUsuario', 'readwrite');
+  const store = tx.objectStore('NivelXUsuario');
+  const index = store.index('IdUsuario_IdNivel');
+
+  try {
+    const nivel = await index.get([idUsuario, idNivel]) as NivelXUsuario;
+
+    if (nivel) {
+      console.log(`query.ts: Nivel encontrado para actualizar (IdNivel: ${idNivel}, IdUsuario: ${idUsuario})`);
+      if (puntaje > nivel.puntaje) {
+        nivel.puntaje = puntaje;
+        console.log(`query.ts: Puntaje actualizado a ${puntaje}`);
+      }
+      
+      // Lógica corregida:
+      // Se actualiza el tiempo solo si es un nuevo récord (menor que el tiempo guardado),
+      // o si el tiempo guardado es el valor inicial de 60.
+      if (tiempo < nivel.tiempo || nivel.tiempo === 60) {
+        nivel.tiempo = tiempo;
+        console.log(`query.ts: Tiempo actualizado a ${tiempo}`);
+      }
+      
+      await store.put(nivel);
+      await tx.done;
+      console.log("query.ts: Se actualizaron los datos del nivel");
+    } else {
+      console.warn(`query.ts: No se encontró el nivel para actualizar (IdNivel: ${idNivel}, IdUsuario: ${idUsuario}).`);
+    }
+  } catch (error) {
+    console.error(`query.ts: Error al actualizar nivel (IdNivel: ${idNivel}, IdUsuario: ${idUsuario}):`, error);
+  } finally {
+    await tx.done;
+  }
 };
 
-export const getNiveles = async (): Promise<Nivel[]> => {
+// --- Funciones de Autenticación y Registro ---
+
+/**
+ * Valida las credenciales de un usuario.
+ * @param email El correo electrónico del usuario.
+ * @param password La contraseña del usuario.
+ * @returns El objeto de usuario si las credenciales son válidas, de lo contrario, null.
+ */
+export const validarUsuario = async (email: string, password: string): Promise<Usuario | null> => {
   const db = await getDB();
-  return db.getAll('Nivel');
+  const tx = db.transaction('Usuario', 'readonly');
+  const store = tx.objectStore('Usuario');
+  const allUsers = await store.getAll();
+  await tx.done;
+
+  const user = allUsers.find(
+    user => user.mail === email && user.contrasena === password
+  );
+
+  return user ?? null;
 };
 
-export const insertHerramienta = async (herramienta: Herramienta): Promise<number> => {
+/**
+ * Registra un nuevo usuario y crea sus datos iniciales (vidas, herramientas, nivel).
+ * @param nuevoUsuario El objeto del nuevo usuario.
+ * @returns Un objeto indicando si la operación fue exitosa.
+ */
+export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
   const db = await getDB();
-  return db.add('Herramienta', herramienta);
+
+  const tempTx = db.transaction('Usuario', 'readonly');
+  const usuarioStore = tempTx.objectStore('Usuario');
+
+  const mailIndex = usuarioStore.index('mail');
+  const usernameIndex = usuarioStore.index('nombre_usuario');
+
+  const [existeMail, existeUsername] = await Promise.all([
+    mailIndex.get(nuevoUsuario.mail),
+    usernameIndex.get(nuevoUsuario.nombre_usuario)
+  ]);
+  await tempTx.done;
+
+  if (existeMail) {
+    return { ok: false, error: 'El correo ya está registrado' };
+  }
+
+  if (existeUsername) {
+    return { ok: false, error: 'El nombre de usuario ya está en uso' };
+  }
+
+  const palabraInicial = await obtenerPalabraLongitud(3);
+  if (!palabraInicial) {
+    return { ok: false, error: 'No hay palabras en la base de datos para el nivel inicial' };
+  }
+
+  const tx = db.transaction(['Usuario', 'NivelXUsuario', 'Herramienta', 'Vida'], 'readwrite');
+
+  try {
+    const usuarioStore = tx.objectStore('Usuario');
+    const nivelXUsuarioStore = tx.objectStore('NivelXUsuario');
+    const herramientaStore = tx.objectStore('Herramienta');
+    const vidaStore = tx.objectStore('Vida');
+
+    const idUsuario = await usuarioStore.add({
+      ...nuevoUsuario,
+      racha: 0,
+      monedas: 0
+    });
+
+    await vidaStore.add({
+      cantidad: 3,
+      IdUsuario: idUsuario as number
+    });
+
+    await herramientaStore.add({
+      tipo: 'pasa',
+      cantidad: 0,
+      IdUsuario: idUsuario as number
+    });
+    await herramientaStore.add({
+      tipo: 'ayuda',
+      cantidad: 0,
+      IdUsuario: idUsuario as number
+    });
+
+    await nivelXUsuarioStore.add({
+      puntaje: 0,
+      tiempo: 60,
+      palabra: palabraInicial,
+      intento: 0,
+      recompensa_intento: '0',
+      IdUsuario: idUsuario as number,
+      IdNivel: 1
+    });
+
+    await tx.done;
+    console.log(`query.ts: Usuario ${idUsuario} registrado y nivel 1 inicializado.`);
+    return { ok: true };
+  } catch (error: any) {
+    console.error('Error en transacción de registro:', error);
+    try { tx.abort(); } catch (abortError) { console.error("Error al intentar abortar transacción:", abortError); }
+    return { ok: false, error: 'Error inesperado al registrar usuario' };
+  }
 };
 
-export const insertVida = async (vida: Vida): Promise<number> => {
+// --- Funciones para Home y Usuario ---
+
+/**
+ * Obtiene la información de las herramientas de un usuario.
+ * @param idUsuario El ID del usuario.
+ * @returns Un array con las herramientas del usuario.
+ */
+export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> => {
   const db = await getDB();
-  return db.add('Vida', vida);
+  const tx = db.transaction('Herramienta', 'readonly');
+  const store = tx.objectStore('Herramienta');
+  const index = store.index('IdUsuario');
+  const result = await index.getAll(idUsuario);
+  await tx.done;
+  return result;
 };
 
-export const insertPalabra = async (palabra: Palabras): Promise<number> => {
+/**
+ * Obtiene la información de las vidas de un usuario.
+ * @param idUsuario El ID del usuario.
+ * @returns Un array con las vidas del usuario.
+ */
+export const getVidas = async (idUsuario: number): Promise<Vida[]> => {
   const db = await getDB();
-  return db.add('Palabras', palabra);
+  const tx = db.transaction('Vida', 'readonly');
+  const store = tx.objectStore('Vida');
+  const index = store.index('IdUsuario');
+  const result = await index.getAll(idUsuario);
+  await tx.done;
+  return result;
 };
 
-export const getPalabras = async (): Promise<Palabras[]> => {
+/**
+ * Obtiene la información de un usuario por su ID.
+ * @param id El ID del usuario.
+ * @returns El objeto de usuario o undefined si no se encuentra.
+ */
+export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> => {
   const db = await getDB();
-  return db.getAll('Palabras');
+  const tx = db.transaction('Usuario', 'readonly');
+  const store = tx.objectStore('Usuario');
+  const usuario = await store.get(id);
+  await tx.done;
+  return usuario ?? undefined;
 };
 
-// Agregar estas funciones al archivo db.ts
-// Obtener estadísticas del usuario
+/**
+ * Obtiene los niveles completados o en progreso de un usuario.
+ * @param idUsuario El ID del usuario.
+ * @returns Un array de objetos NivelXUsuario.
+ */
+export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuario[]> => {
+  const db = await getDB();
+  const tx = db.transaction('NivelXUsuario', 'readonly');
+  const store = tx.objectStore('NivelXUsuario');
+  const index = store.index('IdUsuario');
+  let levels: NivelXUsuario[] = [];
+  try {
+    levels = await index.getAll(idUsuario);
+    console.log("query.ts: getNivelesXUsuario - Niveles obtenidos de DB para usuario", idUsuario, ":", levels);
+  } catch (error) {
+    console.error(`query.ts: Error al obtener niveles para usuario ${idUsuario} desde la DB:`, error);
+  } finally {
+    await tx.done;
+  }
+  return levels;
+};
+
+/**
+ * Obtiene las estadísticas de un usuario.
+ * @param idUsuario El ID del usuario.
+ * @returns Un objeto con la racha y el puntaje máximo.
+ */
 export const getEstadisticasUsuario = async (idUsuario: number) => {
   const db = await getDB();
   
-  // Obtener días de racha (simplificado)
   const nivelesCompletados = await db.getAllFromIndex('NivelXUsuario', 'IdUsuario', idUsuario);
-  const racha = nivelesCompletados.filter(n => n.completado).length; // Ejemplo simplificado
+  const racha = nivelesCompletados.filter(n => n.puntaje > 0).length; // Suponiendo que puntaje > 0 significa completado
   
-  // Obtener puntaje más alto
   const puntajeMaximo = nivelesCompletados.reduce((max, nivel) => 
     nivel.puntaje > max ? nivel.puntaje : max, 0);
   
@@ -385,7 +365,11 @@ export const getEstadisticasUsuario = async (idUsuario: number) => {
   };
 };
 
-// Actualizar usuario
+/**
+ * Actualiza la información de un usuario.
+ * @param usuario El objeto de usuario actualizado.
+ * @returns true si la actualización fue exitosa, false de lo contrario.
+ */
 export const actualizarUsuario = async (usuario: Usuario): Promise<boolean> => {
   try {
     const db = await getDB();
@@ -397,9 +381,99 @@ export const actualizarUsuario = async (usuario: Usuario): Promise<boolean> => {
   }
 };
 
+// --- Funciones para Nivel y Tienda ---
 
-// Tienda
-// Compra de Vida
+/**
+ * Crea o recupera un nuevo nivel para un usuario.
+ * @param idUsuario El ID del usuario.
+ * @param IdNivel El ID del nivel.
+ * @param palabra La palabra a usar para el nivel.
+ * @returns El registro del nivel creado o existente, o null si falla.
+ */
+export const insertNivelXUsuario = async (idUsuario: number, IdNivel: number, palabra: string): Promise<NivelXUsuario | null> => {
+  const db = await getDB();
+  const tx = db.transaction('NivelXUsuario', 'readwrite');
+  const store = tx.objectStore('NivelXUsuario');
+
+  try {
+    const existingRecord = await store.index('IdUsuario_IdNivel').get([idUsuario, IdNivel]);
+    if (existingRecord) {
+      console.log(`query.ts: insertNivelXUsuario - NivelXUsuario (IdUsuario: ${idUsuario}, IdNivel: ${IdNivel}) ya existe. Retornando existente.`);
+      await tx.done;
+      return existingRecord;
+    }
+  } catch (error: any) {
+    console.error(`query.ts: Error al buscar nivel existente antes de insertar (búsqueda por índice):`, error.name, error.message);
+    await tx.done;
+    return null;
+  }
+
+  const nuevoRegistro: Omit<NivelXUsuario, 'id'> = {
+    puntaje: 0,
+    tiempo: 0,
+    palabra,
+    intento: 0,
+    recompensa_intento: '0',
+    IdUsuario: idUsuario,
+    IdNivel: IdNivel,
+  };
+
+  try {
+    const idGenerado = await store.add(nuevoRegistro);
+    const insertedRecord = { ...nuevoRegistro, id: idGenerado as number };
+    await tx.done;
+    console.log(`query.ts: insertNivelXUsuario - Nuevo NivelXUsuario (IdNivel: ${IdNivel}) creado para usuario ${idUsuario}. ID de IndexedDB: ${idGenerado}`);
+    return insertedRecord;
+  } catch (error: any) {
+    console.error(`query.ts: Error al añadir nuevo NivelXUsuario ${IdNivel} para usuario ${idUsuario} (operación de adición):`, error.name, error.message, error);
+    try { tx.abort(); } catch (abortError) { console.error("Error al intentar abortar transacción:", abortError); }
+    return null;
+  }
+};
+
+/**
+ * Actualiza los datos de un nivel específico.
+ * @param nivelActualizado El objeto NivelXUsuario con los datos actualizados.
+ */
+export const updateNivelXUsuario = async (nivelActualizado: NivelXUsuario): Promise<void> => {
+  const db = await getDB();
+  const tx = db.transaction('NivelXUsuario', 'readwrite');
+  const store = tx.objectStore('NivelXUsuario');
+
+  console.log("query.ts: updateNivelXUsuario - Recibido para actualizar:", nivelActualizado);
+
+  try {
+    if (typeof nivelActualizado.id === 'number' && nivelActualizado.id !== null) {
+      console.log(`query.ts: updateNivelXUsuario - Actualizando por ID directo: ${nivelActualizado.id}`);
+      await store.put(nivelActualizado);
+      console.log(`query.ts: updateNivelXUsuario - Nivel actualizado por ID directo (ID de IndexedDB: ${nivelActualizado.id}, IdNivel: ${nivelActualizado.IdNivel})`);
+    } else {
+      console.log(`query.ts: updateNivelXUsuario - ID de IndexedDB no proporcionado. Buscando por IdUsuario_IdNivel para Nivel ${nivelActualizado.IdNivel} de Usuario ${nivelActualizado.IdUsuario}.`);
+      const index = store.index('IdUsuario_IdNivel');
+      const existingRecord = await index.get([nivelActualizado.IdUsuario, nivelActualizado.IdNivel]);
+
+      if (existingRecord) {
+        const updatedEntry = { ...existingRecord, ...nivelActualizado, id: existingRecord.id };
+        await store.put(updatedEntry);
+        console.log(`query.ts: updateNivelXUsuario - Nivel encontrado y actualizado por IdUsuario_IdNivel (ID de IndexedDB: ${existingRecord.id}, IdNivel: ${nivelActualizado.IdNivel})`);
+      } else {
+        console.error(`query.ts: updateNivelXUsuario - ERROR: No se encontró registro existente para actualizar (ni por ID ni por IdUsuario_IdNivel) para Nivel ${nivelActualizado.IdNivel} de Usuario ${nivelActualizado.IdUsuario}. ¡Esto indica un problema de flujo: un nivel debería haber sido insertado antes de intentar actualizarlo!`);
+      }
+    }
+  } catch (error: any) {
+    console.error('query.ts: updateNivelXUsuario - Error en la transacción o operación:', error.name, error.message, error);
+    try { tx.abort(); } catch (abortError) { console.error("Error al intentar abortar transacción:", abortError); }
+  } finally {
+    await tx.done;
+  }
+};
+
+/**
+ * Compra una vida para un usuario.
+ * @param idUsuario El ID del usuario.
+ * @param costo El costo de la vida.
+ * @returns Un objeto indicando si la operación fue exitosa.
+ */
 export const comprarVida = async (idUsuario: number, costo: number): Promise<{ ok: boolean; error?: string }> => {
   const db = await getDB();
 
@@ -423,7 +497,13 @@ export const comprarVida = async (idUsuario: number, costo: number): Promise<{ o
   return { ok: true };
 };
 
-// Compra de Herramienta
+/**
+ * Compra una herramienta para un usuario.
+ * @param idUsuario El ID del usuario.
+ * @param tipo El tipo de herramienta ('pasa' o 'ayuda').
+ * @param costo El costo de la herramienta.
+ * @returns Un objeto indicando si la operación fue exitosa.
+ */
 export const comprarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda', costo: number): Promise<{ ok: boolean; error?: string }> => {
   const db = await getDB();
 
@@ -448,3 +528,59 @@ export const comprarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayud
   return { ok: true };
 };
 
+// --- Funciones de Inicialización ---
+
+/**
+ * Otorga una vida a todos los usuarios.
+ */
+export const otorgarVida = async () => {
+  const db = await getDB();
+  const tx = db.transaction('Vida', 'readwrite');
+  const store = tx.objectStore('Vida');
+  const allVidas = await store.getAll();
+
+  for (const vida of allVidas) {
+    if (vida.cantidad < 5) { // Límite de vidas
+      vida.cantidad += 1;
+      await store.put(vida);
+    }
+  }
+
+  await tx.done;
+  console.log("Se otorgó una vida a todos los usuarios.");
+};
+
+export const insertNivel = async (nivel: Nivel): Promise<number> => {
+  const db = await getDB();
+  return db.add('Nivel', nivel);
+};
+
+export const getNiveles = async (): Promise<Nivel[]> => {
+  const db = await getDB();
+  const levels = await db.getAll('Nivel');
+  return levels;
+};
+
+export const insertHerramienta = async (herramienta: Herramienta): Promise<number> => {
+  const db = await getDB();
+  const id = await db.add('Herramienta', herramienta);
+  return id;
+};
+
+export const insertVida = async (vida: Vida): Promise<number> => {
+  const db = await getDB();
+  const id = await db.add('Vida', vida);
+  return id;
+};
+
+export const insertPalabra = async (palabra: Palabras): Promise<number> => {
+  const db = await getDB();
+  const id = await db.add('Palabras', palabra);
+  return id;
+};
+
+export const getPalabras = async (): Promise<Palabras[]> => {
+  const db = await getDB();
+  const palabras = await db.getAll('Palabras');
+  return palabras;
+};

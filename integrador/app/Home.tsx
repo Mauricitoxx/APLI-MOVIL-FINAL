@@ -1,133 +1,280 @@
-import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import ToolSelector from '@/components/ToolSelector';
-import Countdown from '@/components/CountDown';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUser } from '@/context/UserContext';
-import { getNivelesXUsuario, getUsuarioPorId, getVidas, insertNivelXUsuario } from '@/assets/database/query';
+import {
+  getNivelesXUsuario,
+  getUsuarioPorId,
+  getVidas,
+  updateNivelXUsuario,
+  insertNivelXUsuario,
+  obtenerPalabraLongitud,
+} from '@/assets/database/query';
 import ListLevels from '@/components/ListLevels';
 import { NivelXUsuario } from '@/assets/database/type';
-import { useFocusEffect } from 'expo-router';
-import { setupIndexedDB } from '@/assets/database/db';
-
+import { RootStackParamList } from '../Game';
+import Footer from '@/components/Footer';
+import ToolSelector from '@/components/ToolSelector';
+import Countdown from '@/components/CountDown';
 
 export default function Home() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { userId } = useUser();
 
   const [monedas, setMonedas] = useState<number | undefined>(undefined);
   const [vidas, setVidas] = useState<number | undefined>(undefined);
-  const [listaNiveles, setListaNiveles] = useState<NivelXUsuario[]>([]);
-
+  const [nivelesParaListLevelsHome, setNivelesParaListLevelsHome] = useState<any[]>([]);
   const [selected, setSelected] = useState<'verde' | 'amarilla' | 'gris'>('verde');
+
   const options = {
     verde: {
-      description: 'VERDE significa que la letra esta en la palabra y en la posicion CORRECTA'
+      description: 'VERDE significa que la letra está en la palabra y en la posición CORRECTA'
     },
     amarilla: {
-      description: 'AMARILLO significa que la letra esta presente en la palabra, pero en la posicion INCORRECTA'
+      description: 'AMARILLO significa que la letra está presente en la palabra, pero en la posición INCORRECTA'
     },
     gris: {
-      description: 'GRIS significa que la letra NO esta presente en la palabra'
+      description: 'GRIS significa que la letra NO está presente en la palabra'
     }
-  }
+  };
+
+  const fetchDataAndPrepareLevels = useCallback(async () => {
+    if (!userId) {
+      console.log('Home: userId es null/undefined, no se pueden obtener datos ni niveles.');
+      setNivelesParaListLevelsHome([{
+        id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 60,
+        completado: false, disponible: true, bloqueado: false,
+        palabra: null, intento: 0, recompensa_intento: '', IdUsuario: 0, IdNivel: 1
+      }]);
+      return;
+    }
+
+    try {
+      const vidasData = await getVidas(userId);
+      setVidas(vidasData.length > 0 ? vidasData[0].cantidad ?? 0 : 0);
+      const datosUsuario = await getUsuarioPorId(userId);
+      setMonedas(datosUsuario?.monedas ?? 0);
+
+      const nivelesExistentesDb: NivelXUsuario[] = await getNivelesXUsuario(userId);
+      console.log('Home: Niveles existentes obtenidos de DB (for display):', nivelesExistentesDb);
+
+      let allRelevantLevelsMap = new Map<number, NivelXUsuario>();
+      nivelesExistentesDb.forEach(nivel => {
+        allRelevantLevelsMap.set(nivel.IdNivel, nivel);
+      });
+
+      if (!allRelevantLevelsMap.has(1)) {
+        const palabraInicial = await obtenerPalabraLongitud(3);
+        if (palabraInicial) {
+          const nuevoNivel = await insertNivelXUsuario(userId, 1, palabraInicial);
+          if (nuevoNivel) {
+            allRelevantLevelsMap.set(1, nuevoNivel);
+          }
+        }
+      }
+
+      const nivelesIdsCompletados = nivelesExistentesDb
+        .filter(n => n.puntaje > 0)
+        .map(n => n.IdNivel);
+
+      const ultimoNivelCompletado = nivelesIdsCompletados.length > 0
+        ? Math.max(...nivelesIdsCompletados)
+        : 0;
+
+      const nivelActualAJugar = ultimoNivelCompletado + 1;
+      let levelsToShow: any[] = [];
+      
+      for (let i = 1; i <= nivelActualAJugar; i++) {
+        const rawNivel = allRelevantLevelsMap.get(i);
+        
+        let completado = false;
+        let disponible = false;
+        let bloqueado = true;
+
+        if (rawNivel && rawNivel.puntaje > 0) {
+          completado = true;
+          disponible = true;
+          bloqueado = false;
+        }
+
+        if (i === nivelActualAJugar) {
+          disponible = true;
+          bloqueado = false;
+        } else if (i < nivelActualAJugar && completado) {
+          disponible = true;
+          bloqueado = false;
+        } else {
+          bloqueado = true;
+        }
+
+        levelsToShow.push({
+          id: rawNivel?.id ?? null,
+          idForFlatList: String(i),
+          level: i,
+          puntaje: rawNivel?.puntaje ?? 0,
+          tiempo: rawNivel?.tiempo ?? 60,
+          completado: completado,
+          disponible: disponible,
+          bloqueado: bloqueado,
+          palabra: rawNivel?.palabra ?? null,
+          intento: rawNivel?.intento ?? 0,
+          recompensa_intento: rawNivel?.recompensa_intento ?? '0',
+          IdUsuario: userId,
+          IdNivel: i,
+        });
+      }
+
+      setNivelesParaListLevelsHome(levelsToShow);
+      console.log('Home: Niveles PROCESADOS FINAL para ListLevels (showing only completed + next):', levelsToShow);
+    } catch (err) {
+      console.error('Home: Error obteniendo y preparando niveles:', err);
+      Alert.alert('Error', 'Hubo un problema al cargar los datos. Intenta de nuevo.');
+    }
+  }, [userId]);
+
+  const handleGameResult = useCallback(async (nivelActualizado: NivelXUsuario | null) => {
+    console.log('Home: handleGameResult received:', nivelActualizado);
+    if (!userId) {
+      console.error('Home: userId is null in handleGameResult. Cannot save level.');
+      Alert.alert('Error', 'Usuario no identificado. No se pudo guardar el nivel.');
+      return;
+    }
+
+    if (nivelActualizado && nivelActualizado.IdNivel) {
+      try {
+        const allUserLevels = await getNivelesXUsuario(userId);
+        const existingLevelInDb = allUserLevels.find(
+          n => n.IdNivel === nivelActualizado.IdNivel && n.IdUsuario === userId
+        );
+        
+        if (existingLevelInDb) {
+          console.log(`Home: Level ${nivelActualizado.IdNivel} already exists in DB (ID: ${existingLevelInDb.id}). Updating.`);
+          const finalNivelToSave = {
+            ...existingLevelInDb,
+            puntaje: nivelActualizado.puntaje,
+            tiempo: nivelActualizado.tiempo,
+            intento: nivelActualizado.intento,
+            recompensa_intento: nivelActualizado.recompensa_intento,
+            palabra: existingLevelInDb.palabra || nivelActualizado.palabra,
+          };
+          await updateNivelXUsuario(finalNivelToSave);
+          Alert.alert('Nivel Actualizado', `Nivel ${finalNivelToSave.IdNivel} se ha actualizado.`);
+        } else {
+          console.error(`Home: Lógica incorrecta. El nivel ${nivelActualizado.IdNivel} no debería ser un nivel nuevo si ya se está jugando. Se intentará insertar.`);
+          const insertedNivel = await insertNivelXUsuario(
+            userId,
+            nivelActualizado.IdNivel,
+            nivelActualizado.palabra
+          );
+          if (insertedNivel) {
+            const updatedInsertedNivel: NivelXUsuario = {
+              ...insertedNivel,
+              puntaje: nivelActualizado.puntaje,
+              tiempo: nivelActualizado.tiempo,
+              intento: nivelActualizado.intento,
+              recompensa_intento: nivelActualizado.recompensa_intento,
+            };
+            await updateNivelXUsuario(updatedInsertedNivel);
+            Alert.alert('Nivel Completado', `¡Nivel ${updatedInsertedNivel.IdNivel} guardado!`);
+          } else {
+            console.error('Home: Error al insertar el nuevo NivelXUsuario.');
+            Alert.alert('Error', 'No se pudo guardar el nuevo nivel.');
+          }
+        }
+        fetchDataAndPrepareLevels();
+      } catch (err) {
+        console.error('Home: Error processing game result for level', nivelActualizado?.IdNivel, ':', err);
+        Alert.alert('Error', 'Hubo un problema al guardar el resultado del nivel.');
+      }
+    } else {
+      console.log('Home: Nivel no completado o se volvió sin cambios.');
+      fetchDataAndPrepareLevels();
+    }
+  }, [userId, fetchDataAndPrepareLevels]);
 
   useFocusEffect(
     useCallback(() => {
-      const fetchDatos = async () => {
-        try {
-          await setupIndexedDB();
-
-          // Obtener vidas
-          const vidasRes = await getVidas(userId!);
-          const cantidadVidas = vidasRes.length > 0 ? vidasRes[0].cantidad ?? 0 : 0;
-          setVidas(cantidadVidas);
-
-          // Obtener monedas
-          const usuario = await getUsuarioPorId(userId!);
-          const monedasRes = usuario?.monedas ?? 0;
-          setMonedas(monedasRes);
-
-          // Obtener niveles
-          let niveles = await getNivelesXUsuario(userId!);
-          if (niveles.length === 0) {
-            const nuevoNivel = await insertNivelXUsuario(userId!);
-            niveles = [nuevoNivel];
-          }
-          setListaNiveles(niveles);
-
-        } catch (error) {
-          console.error("Error al cargar datos del usuario:", error);
-        }
-      };
-
-      fetchDatos();
-    }, [userId])
+      fetchDataAndPrepareLevels();
+    }, [fetchDataAndPrepareLevels])
   );
+
+  const handlePlayButton = () => {
+    const nivelActual = nivelesParaListLevelsHome.find(nivel => nivel.disponible && !nivel.completado && nivel.palabra !== null);
+    
+    if (nivelActual && nivelActual.palabra) {
+      console.log('Home: Navegando a GameScreen para el siguiente nivel disponible:', nivelActual.level);
+      navigation.navigate('GameScreen', {
+        nivel: nivelActual,
+        onGameEnd: handleGameResult,
+      });
+    } else {
+      Alert.alert('¡No hay niveles disponibles!', 'Has completado todos los niveles o hay un error al cargar el próximo nivel.');
+    }
+  };
 
   function capitalize(color: string) {
     return color.charAt(0).toUpperCase() + color.slice(1);
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.currency}>
-          <Text style={styles.currencyText}>💰 {monedas ?? 'Cargando...'}</Text>
+    <View style={styles.fullScreenContainer}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 150 }} horizontal={false} showsVerticalScrollIndicator={true}>
+        <View style={styles.header}>
+          <View style={styles.currency}>
+            <Text style={styles.currencyText}>💰 {monedas ?? 'Cargando...'}</Text>
+          </View>
+          <View style={styles.currency}>
+            <Text style={styles.currencyText}>❤️ {vidas ?? 'Cargando...'}</Text>
+          </View>
         </View>
-        <View style={styles.currency}>
-          <Text style={styles.currencyText}>❤️ {vidas ?? 'Cargando...'}</Text>
+
+        <Text style={styles.sectionTitle}>Niveles</Text>
+        {nivelesParaListLevelsHome.length > 0 ? (
+          <ListLevels
+            niveles={nivelesParaListLevelsHome}
+            navigation={navigation}
+            onGameResult={handleGameResult}
+          />
+        ) : (
+          <Text style={styles.noLevelsAvailable}>No hay niveles disponibles para mostrar.</Text>
+        )}
+
+        <View style={styles.nextLifeBox}>
+          <Text style={styles.nextLifeText}>
+            <Countdown />
+          </Text>
         </View>
-      </View>
 
-      {/* Niveles */}
-      <Text style={styles.sectionTitle}>Niveles</Text>
-      <ListLevels
-        niveles={listaNiveles}
-        setNiveles={setListaNiveles}
-        navigation={navigation}
-      />
+        <ToolSelector />
 
-      {/* Próxima vida */}
-      <View style={styles.nextLifeBox}>
-        <Text style={styles.nextLifeText}><Countdown /></Text>
-      </View>
-
-      {/* Herramientas */}
-      <ToolSelector />
-
-      {/* Como Jugar */}
-      <View style={styles.rulesContainer}>
-        <Text style={styles.rulesTitle}>¿Cómo Jugar?</Text>
-        <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo numero de nivel entre usuarios.</Text>
-        <Text style={styles.rulesSubtitle}>Cada intento debe ser una palabra válida. En cada ronda el juego pinta cada letra de un color indicando si esa letra se encuentra o no en la palabra y si se encuentra en la posición correcta.</Text>
-
-        <View style={styles.rulesButtons}>
-          {['verde', 'amarilla', 'gris'].map((color) => (
-            <TouchableOpacity
-              key={color}
-              style={[
-                styles.ruleButton,
-                selected === color && styles.ruleButtonSelected,
-              ]}
-              onPress={() => setSelected(color)}
-            >
-              <Text
+        <View style={styles.rulesContainer}>
+          <Text style={styles.rulesTitle}>¿Cómo Jugar?</Text>
+          <Text style={styles.rulesSubtitle}>El objetivo del juego es adivinar la palabra oculta. La palabra puede tener desde 3 a 6 letras y se tiene 6 intentos para adivinarla. Las palabras pueden no repertirse en el mismo número de nivel entre usuarios.</Text>
+          <Text style={styles.rulesSubtitle}>Cada intento debe ser una palabra válida. En cada ronda el juego pinta cada letra de un color indicando si esa letra se encuentra o no en la palabra y si se encuentra en la posición correcta.</Text>
+          <View style={styles.rulesButtons}>
+            {['verde', 'amarilla', 'gris'].map((color) => (
+              <TouchableOpacity
+                key={color}
                 style={[
-                  styles.ruleButtonText,
-                  selected === color && styles.ruleButtonTextSelected,
+                  styles.ruleButton,
+                  selected === color && styles.ruleButtonSelected,
                 ]}
+                onPress={() => setSelected(color as 'verde' | 'amarilla' | 'gris')}
               >
-                {`Letra ${capitalize(color)}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        <View style={styles.ruleDescriptionBox}>
-          <Image
+                <Text
+                  style={[
+                    styles.ruleButtonText,
+                    selected === color && styles.ruleButtonTextSelected,
+                  ]}
+                >
+                  {`Letra ${capitalize(color)}`}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <View style={styles.ruleDescriptionBox}>
+            <Image
               source={
                 selected === 'verde'
                   ? require('../images/verdeLetra.png')
@@ -137,46 +284,26 @@ export default function Home() {
               }
               style={styles.ruleImage}
               resizeMode="contain"
-          />
-
-          <Text style={styles.ruleDescription}>{options[selected].description}</Text>
+            />
+            <Text style={styles.ruleDescription}>{options[selected].description}</Text>
+          </View>
         </View>
-      </View>
-
-
-      {/* Botón jugar */}
-      <TouchableOpacity style={styles.playButton}>
+      </ScrollView>
+      <TouchableOpacity style={styles.playButton} onPress={handlePlayButton}>
         <Text style={styles.playText}>Jugar</Text>
       </TouchableOpacity>
-
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="home" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.footerButton}
-          onPress={() => navigation.navigate('Shop')}
-        >
-          <Feather name="shopping-cart" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="play" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.footerButton}
-          onPress={() => navigation.navigate('User')}>
-          <Feather name="user" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <Footer />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  fullScreenContainer: {
     flex: 1,
     backgroundColor: '#000',
+  },
+  container: {
+    flex: 1,
     padding: 10,
   },
   header: {
@@ -193,14 +320,17 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 15,
   },
-  section: {
-    marginBottom: 10,
-  },
   sectionTitle: {
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 20,
     marginBottom: 6,
+  },
+  noLevelsAvailable: {
+    color: '#aaa',
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
   },
   imageBox: {
     width: 100,
@@ -224,12 +354,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   rulesContainer: {
-  backgroundColor: '#1c1c1e',
-  borderRadius: 12,
-  padding: 16,
-  margin: 12,
-  borderWidth: 1,
-  borderColor: '#333',
+    backgroundColor: '#1c1c1e',
+    borderRadius: 12,
+    padding: 16,
+    margin: 12,
+    borderWidth: 1,
+    borderColor: '#333',
   },
   rulesTitle: {
     fontSize: 20,
@@ -316,23 +446,5 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
-  },
-  footer: {
-    backgroundColor: '#7a4ef2',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    paddingVertical: 10,
-    borderRadius: 20,
-    position: 'absolute',
-    bottom: 30,
-    left: 15,
-    right: 15,
-  },
-  footerButton: {
-    alignItems: 'center',
-  },
-  footerText: {
-    color: '#fff',
-    fontWeight: 'bold',
   },
 });
