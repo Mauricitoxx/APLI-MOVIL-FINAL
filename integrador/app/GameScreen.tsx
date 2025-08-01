@@ -19,7 +19,7 @@ const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const handleGameEnd = (ganado: boolean, puntos?: number, tiempo?: number) => {
     console.log("Fin del juego", { ganado, puntos, tiempo });
     
-    const resultado: NivelXUsuario = { ...nivel, puntaje: puntos ?? 0, tiempo: tiempo ?? 0 };
+    const resultado: NivelXUsuario = { ...nivel, puntaje: puntos ?? 0, tiempo: tiempo ?? 60 };
     
     // Verificación de seguridad antes de llamar a onGameEnd
     if (onGameEnd && typeof onGameEnd === 'function') {
