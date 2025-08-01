@@ -6,7 +6,27 @@ import { Feather } from '@expo/vector-icons';
 import Footer from '@/components/Footer';
 import { useUser } from '@/context/UserContext';
 import { getNivelesXUsuario } from '@/assets/database/query';
-import { NivelXUsuario, RootStackParamList } from '../Game';
+import { NivelXUsuario } from '@/assets/database/type';
+
+// Definición de todos los tipos de pantalla en un solo lugar
+export type RootStackParamList = {
+  Index: undefined;
+  Login: undefined;
+  Register: undefined;
+  Home: undefined;
+  Shop: undefined;
+  Game: {
+    nivel: NivelXUsuario;
+    onGameEnd: (nivelActualizado: NivelXUsuario | null) => void;
+  };
+  Levels: {
+    onGameEndFromHome?: (nivelActualizado: NivelXUsuario | null) => void;
+  };
+  GameScreen: {
+    nivel: NivelXUsuario;
+    onGameEnd: (nivelActualizado: NivelXUsuario | null) => void;
+  };
+};
 
 const { width } = Dimensions.get('window');
 const SPACING = 10;
@@ -33,10 +53,10 @@ const getTextColor = (status: 'completed' | 'current' | 'locked') => {
 interface LevelTileProps {
   item: NivelXUsuario & { status: string };
   navigation: any;
-  onGameResult: ((nivelActualizado: NivelXUsuario | null) => void) | undefined;
+  onGameEnd: ((nivelActualizado: NivelXUsuario | null) => void);
 }
 
-const LevelTile = ({ item, navigation, onGameResult }: LevelTileProps) => {
+const LevelTile = ({ item, navigation, onGameEnd }: LevelTileProps) => {
   const backgroundColor = getBackgroundColor(item.status as 'completed' | 'current' | 'locked');
   const textColor = getTextColor(item.status as 'completed' | 'current' | 'locked');
   const isLocked = item.status === 'locked';
@@ -48,9 +68,9 @@ const LevelTile = ({ item, navigation, onGameResult }: LevelTileProps) => {
         if (!isLocked) {
           navigation.navigate('Game', { 
             nivel: item, 
-            onResultado: onGameResult 
+            onGameEnd: onGameEnd
           });
-          console.log(`LevelsScreen LevelTile: Navigating to Nivel ${item.IdNivel} with full object and onResultado callback (may be undefined).`, item);
+          console.log(`LevelsScreen LevelTile: Navigating to Nivel ${item.IdNivel}`);
         } else {
           console.log(`LevelsScreen LevelTile: Nivel ${item.IdNivel} is locked.`);
         }
@@ -70,7 +90,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
   const { userId } = useUser();
   const [levelsToDisplay, setLevelsToDisplay] = useState<Array<NivelXUsuario & { status: string }>>([]);
 
-  const { onGameResultFromHome } = route.params || {};
+  const { onGameEndFromHome } = route.params || {};
 
   useFocusEffect(
     React.useCallback(() => {
@@ -99,7 +119,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
           for (let i = 1; i <= TOTAL_NIVELES; i++) {
             const nivelFromMap = allLevelsMap.get(i);
             let status: 'completed' | 'current' | 'locked';
-
+            
             if (nivelFromMap && nivelFromMap.puntaje > 0) {
               status = 'completed';
             } else if (i === currentLevelToPlay) {
@@ -107,7 +127,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
             } else {
               status = 'locked';
             }
-
+            
             generatedLevels.push({
               id: nivelFromMap?.id || null,
               puntaje: nivelFromMap?.puntaje ?? 0,
@@ -147,7 +167,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
             <LevelTile 
               item={item} 
               navigation={navigation} 
-              onGameResult={onGameResultFromHome} 
+              onGameEnd={onGameEndFromHome || (() => {})}
             />
           )}
           keyExtractor={(item) => String(item.IdNivel)}

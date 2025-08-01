@@ -2,7 +2,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 
 let dbInstance: IDBPDatabase | null = null;
 const DB_NAME = 'AppDB';
-const DB_VERSION = 22; 
+const DB_VERSION = 23; 
 
 export const setupDatabase = async (): Promise<void> => {
   console.log('Initializing DB...');
@@ -117,7 +117,7 @@ export const seedInitialData = async (): Promise<void> => {
       { palabra: 'vino' }, { palabra: 'cielo' }, { palabra: 'perro' }, { palabra: 'planta' }, { palabra: 'nube' },
       { palabra: 'sueño' }, { palabra: 'papel' }, { palabra: 'reloj' }, { palabra: 'playa' }, { palabra: 'viento' },
       { palabra: 'amigo' }, { palabra: 'bosque' }, { palabra: 'calor' }, { palabra: 'camino' }, { palabra: 'tierra' },
-      { palabra: 'mirar' }, { palabra: 'mundo' },
+      { palabra: 'mirar' }, { palabra: 'mundo' }, { palabra: 'comida' }, { palabra: 'musica' }, { palabra: 'banana' },
     ]);
 
     console.log("Initial data seeding complete.");

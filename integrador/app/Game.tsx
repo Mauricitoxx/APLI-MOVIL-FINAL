@@ -1,47 +1,98 @@
-import React, { useState } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NivelXUsuario } from '@/assets/database/type';
 import { useNavigation } from "@react-navigation/native";
-
-// Definición de todos los tipos de pantalla en un solo lugar
-export type RootStackParamList = {
-  Index: undefined;
-  Login: undefined;
-  Register: undefined;
-  Home: undefined;
-  Shop: undefined;
-  Game: {
-    nivel: NivelXUsuario;
-    onResultado?: (nivelActualizado: NivelXUsuario | null) => void;
-  };
-  Levels: {
-    onGameResultFromHome?: (nivelActualizado: NivelXUsuario | null) => void;
-  };
-  GameScreen: {
-    nivel: NivelXUsuario;
-    onGameEnd: (nivelActualizado: NivelXUsuario | null) => void;
-  };
-};
+import { obtenerPalabraLongitud, insertNivelXUsuario } from '@/assets/database/query';
+import { useUser } from '@/context/UserContext';
+import type { RootStackParamList } from './LevelsScreen';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 
 export default function Game({ route, navigation }: Props) {
-  const { nivel, onResultado = () => {} } = route.params;
+  const [nivelConPalabra, setNivelConPalabra] = useState<NivelXUsuario | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const { userId } = useUser();
+  const { nivel, onGameEnd } = route.params;
+
+  useEffect(() => {
+    const loadLevelData = async () => {
+      try {
+        let tempNivel = { ...nivel };
+
+        if (!userId) {
+          console.error("Game: userId no está disponible. Volviendo.");
+          navigation.goBack();
+          return;
+        }
+        
+        // Si no hay palabra, la buscamos y la insertamos en la DB
+        if (!tempNivel.palabra) {
+          console.log(`Game: Buscando palabra para el nivel ${tempNivel.IdNivel}...`);
+          const palabraObtenida = await obtenerPalabraLongitud();
+          if (palabraObtenida) {
+            tempNivel.palabra = palabraObtenida;
+            // Intentamos insertar el nivel en la DB
+            const nivelInsertado = await insertNivelXUsuario(userId, tempNivel.IdNivel, palabraObtenida);
+            if (nivelInsertado) {
+              tempNivel = nivelInsertado;
+            }
+          } else {
+            console.error('Game: No se pudo obtener una palabra. Volviendo a la pantalla anterior.');
+            navigation.goBack();
+            return;
+          }
+        }
+
+        setNivelConPalabra(tempNivel);
+        setIsLoading(false);
+
+      } catch (error) {
+        console.error('Game: Error al cargar los datos del nivel:', error);
+        navigation.goBack();
+      }
+    };
+
+    loadLevelData();
+  }, [nivel, navigation, userId]);
 
   const handlePlayGame = () => {
     console.log('Game: Navegando a GameScreen para Nivel', nivel.IdNivel);
-    navigation.navigate('GameScreen', {
-      nivel: nivel,
-      onGameEnd: onResultado,
-    });
+    if (nivelConPalabra) {
+      navigation.navigate('GameScreen', {
+        nivel: nivelConPalabra,
+        onGameEnd: onGameEnd,
+      });
+    }
   };
 
   const volverSinCambios = () => {
-    console.log('Game: Volver sin cambios - Calling onResultado with null');
-    onResultado(null);
+    console.log('Game: Volver sin cambios - Calling onGameEnd with null');
+    if (onGameEnd && typeof onGameEnd === 'function') {
+      onGameEnd(null);
+    }
     navigation.goBack();
   };
+
+  if (isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#7a4ef2" />
+        <Text style={styles.loadingText}>Cargando nivel...</Text>
+      </View>
+    );
+  }
+
+  if (!nivelConPalabra) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loadingText}>Error al cargar el nivel.</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>Volver</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -52,19 +103,19 @@ export default function Game({ route, navigation }: Props) {
           resizeMode="cover" 
         />
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>Nivel {nivel.IdNivel}</Text>
+          <Text style={styles.cardTitle}>Nivel {nivelConPalabra.IdNivel}</Text>
           
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Intentos :</Text>
-            <Text style={styles.infoTextValue}>{nivel.intento || 5}</Text>
+            <Text style={styles.infoTextValue}>{nivelConPalabra.intento || 5}</Text>
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Tiempo:</Text>
-            <Text style={styles.infoTextValue}>{nivel.tiempo || 60}</Text>
+            <Text style={styles.infoTextValue}>{nivelConPalabra.tiempo || 60}</Text>
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Puntaje:</Text>
-            <Text style={styles.infoTextValue}>{nivel.puntaje || 0}</Text>
+            <Text style={styles.infoTextValue}>{nivelConPalabra.puntaje || 0}</Text>
           </View>
         </View>
       </View>
@@ -170,5 +221,10 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 20,
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    marginTop: 20,
+    fontSize: 18,
   },
 });

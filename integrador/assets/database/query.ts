@@ -4,11 +4,10 @@ import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from 
 // --- Funciones de Lógica del Juego ---
 
 /**
- * Obtiene una palabra aleatoria de una longitud específica de la base de datos.
- * @param longitud La longitud de la palabra a buscar.
+ * Obtiene una palabra aleatoria de una longitud aleatoria (entre 2 y 5) de la base de datos.
  * @returns La palabra encontrada o null si no hay palabras de esa longitud.
  */
-export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
+export const obtenerPalabraLongitud = async (): Promise<string | null> => {
   const db = await getDatabase();
   const tx = db.transaction('Palabras', 'readonly');
   const store = tx.objectStore('Palabras');
@@ -16,13 +15,19 @@ export const obtenerPalabraLongitud = async (longitud: number): Promise<string |
   const todasLasPalabras = await store.getAll();
   await tx.done;
 
-  const palabrasFiltradas = todasLasPalabras.filter(p => p.palabra.length === longitud);
+  // Genera una longitud de palabra aleatoria entre 2 y 5 (inclusive)
+  const longitudAleatoria = Math.floor(Math.random() * (5 - 2 + 1)) + 2;
+  console.log(`query.ts: Buscando palabra con longitud aleatoria: ${longitudAleatoria}`);
+
+  // Filtra las palabras por la longitud aleatoria generada
+  const palabrasFiltradas = todasLasPalabras.filter(p => p.palabra.length === longitudAleatoria);
 
   if (palabrasFiltradas.length === 0) {
-    console.warn(`query.ts: No se encontraron palabras con longitud ${longitud}.`);
+    console.warn(`query.ts: No se encontraron palabras con longitud ${longitudAleatoria}.`);
     return null;
   }
 
+  // Selecciona una palabra aleatoria de la lista filtrada
   const indiceAleatorio = Math.floor(Math.random() * palabrasFiltradas.length);
   return palabrasFiltradas[indiceAleatorio].palabra;
 };
@@ -140,20 +145,29 @@ export const cargarDatosNivel = async (idUsuario: number, idNivel: number, punta
   const store = tx.objectStore('NivelXUsuario');
   const index = store.index('IdUsuario_IdNivel');
 
-  const nivel = await index.get([idUsuario, idNivel]) as NivelXUsuario;
+  try {
+    const nivel = await index.get([idUsuario, idNivel]) as NivelXUsuario;
 
-  if (nivel) {
-    if (puntaje > nivel.puntaje) {
-      nivel.puntaje = puntaje;
+    if (nivel) {
+      console.log(`query.ts: Nivel encontrado para actualizar (IdNivel: ${idNivel}, IdUsuario: ${idUsuario})`);
+      if (puntaje > nivel.puntaje) {
+        nivel.puntaje = puntaje;
+        console.log(`query.ts: Puntaje actualizado a ${puntaje}`);
+      }
+      if (tiempo < nivel.tiempo) {
+        nivel.tiempo = tiempo;
+        console.log(`query.ts: Tiempo actualizado a ${tiempo}`);
+      }
+      await store.put(nivel);
+      await tx.done;
+      console.log("query.ts: Se actualizaron los datos del nivel");
+    } else {
+      console.warn(`query.ts: No se encontró el nivel para actualizar (IdNivel: ${idNivel}, IdUsuario: ${idUsuario}).`);
     }
-    if (tiempo < nivel.tiempo) {
-      nivel.tiempo = tiempo;
-    }
-    await store.put(nivel);
+  } catch (error) {
+    console.error(`query.ts: Error al actualizar nivel (IdNivel: ${idNivel}, IdUsuario: ${idUsuario}):`, error);
+  } finally {
     await tx.done;
-    console.log("Se actualizaron los datos del nivel");
-  } else {
-    console.warn('No se encontró el nivel para actualizar');
   }
 };
 
@@ -207,9 +221,9 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
     return { ok: false, error: 'El nombre de usuario ya está en uso' };
   }
 
-  const palabraInicial = await obtenerPalabraLongitud(3);
+  const palabraInicial = await obtenerPalabraLongitud();
   if (!palabraInicial) {
-    return { ok: false, error: 'No hay palabras con esa longitud en la base de datos para el nivel inicial' };
+    return { ok: false, error: 'No hay palabras en la base de datos para el nivel inicial' };
   }
 
   const tx = db.transaction(['Usuario', 'NivelXUsuario', 'Herramienta', 'Vida'], 'readwrite');
