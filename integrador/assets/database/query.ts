@@ -4,7 +4,8 @@ import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from 
 // --- Funciones de Lógica del Juego ---
 
 /**
- * Obtiene una palabra aleatoria de una longitud aleatoria (entre 2 y 5) de la base de datos.
+ * Obtiene una palabra aleatoria de una longitud específica de la base de datos.
+ * @param longitud La longitud de la palabra a buscar.
  * @returns La palabra encontrada o null si no hay palabras de esa longitud.
  */
 export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
@@ -149,10 +150,15 @@ export const cargarDatosNivel = async (idUsuario: number, idNivel: number, punta
         nivel.puntaje = puntaje;
         console.log(`query.ts: Puntaje actualizado a ${puntaje}`);
       }
-      if (tiempo < nivel.tiempo) {
+      
+      // Lógica corregida:
+      // Se actualiza el tiempo solo si es un nuevo récord (menor que el tiempo guardado),
+      // o si el tiempo guardado es el valor inicial de 60.
+      if (tiempo < nivel.tiempo || nivel.tiempo === 60) {
         nivel.tiempo = tiempo;
         console.log(`query.ts: Tiempo actualizado a ${tiempo}`);
       }
+      
       await store.put(nivel);
       await tx.done;
       console.log("query.ts: Se actualizaron los datos del nivel");
@@ -404,7 +410,7 @@ export const insertNivelXUsuario = async (idUsuario: number, IdNivel: number, pa
 
   const nuevoRegistro: Omit<NivelXUsuario, 'id'> = {
     puntaje: 0,
-    tiempo: 60,
+    tiempo: 0,
     palabra,
     intento: 0,
     recompensa_intento: '0',

@@ -113,7 +113,7 @@ export default function Game({ route, navigation }: Props) {
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Tiempo:</Text>
-            <Text style={styles.infoTextValue}>{nivelConPalabra.tiempo || 60}</Text>
+            <Text style={styles.infoTextValue}>{nivelConPalabra.tiempo || 0}</Text>
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Puntaje:</Text>

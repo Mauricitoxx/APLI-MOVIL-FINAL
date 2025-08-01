@@ -134,7 +134,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
             generatedLevels.push({
               id: nivelFromMap?.id || null,
               puntaje: nivelFromMap?.puntaje ?? 0,
-              tiempo: nivelFromMap?.tiempo ?? 60,
+              tiempo: nivelFromMap?.tiempo ?? 0,
               // La palabra se obtiene más adelante
               palabra: null, 
               intento: nivelFromMap?.intento ?? 0,
@@ -151,7 +151,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
         } catch (err) {
           console.error('LevelsScreen: Error fetching and preparing levels:', err);
           setLevelsToDisplay([{
-            id: null, puntaje: 0, tiempo: 60, palabra: null, intento: 0, recompensa_intento: '',
+            id: null, puntaje: 0, tiempo: 0, palabra: null, intento: 0, recompensa_intento: '',
             IdUsuario: userId, IdNivel: 1, status: 'current'
           }]);
         }

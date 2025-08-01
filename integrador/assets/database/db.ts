@@ -2,7 +2,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 
 let dbInstance: IDBPDatabase | null = null;
 const DB_NAME = 'AppDB';
-const DB_VERSION = 24; 
+const DB_VERSION = 26; 
 
 export const setupIndexedDB = async (): Promise<void> => {
   console.log('Inicializando BD...');
@@ -110,7 +110,11 @@ export const setupIndexedDB = async (): Promise<void> => {
         { palabra: 'sueño' }, { palabra: 'papel' }, { palabra: 'reloj' }, { palabra: 'playa' }, { palabra: 'viento' },
         { palabra: 'amigo' }, { palabra: 'bosque' }, { palabra: 'calor' }, { palabra: 'camino' }, { palabra: 'tierra' },
         { palabra: 'mirar' }, { palabra: 'mundo' }, { palabra: 'comida' }, { palabra: 'musica' }, { palabra: 'banana' },
-        { palabra: 'arboles' },
+        { palabra: 'arboles' }, { palabra: 'abanico' }, { palabra: 'caracol' }, { palabra: 'ventana' }, { palabra: 'maleta' },
+        { palabra: 'guitarra' }, { palabra: 'espejo' }, { palabra: 'cuchara' }, { palabra: 'zapato' }, { palabra: 'camisa' },
+        { palabra: 'telefono' }, { palabra: 'computadora' }, { palabra: 'bicicleta' }, { palabra: 'pelota' }, { palabra: 'juego' },
+        { palabra: 'hermoso' }, { palabra: 'valiente' }, { palabra: 'antiguo' }, { palabra: 'aprender' }, { palabra: 'creativo' },
+        { palabra: 'resolver' }, { palabra: 'invierno' }, { palabra: 'mariposa' },
       ]
     };
     for (const storeName in defaultData) {
