@@ -1,6 +1,8 @@
 import { getDatabase } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
+// --- Funciones de Lógica del Juego ---
+
 /**
  * Obtiene una palabra aleatoria de una longitud específica de la base de datos.
  * @param longitud La longitud de la palabra a buscar.
@@ -24,6 +26,138 @@ export const obtenerPalabraLongitud = async (longitud: number): Promise<string |
   const indiceAleatorio = Math.floor(Math.random() * palabrasFiltradas.length);
   return palabrasFiltradas[indiceAleatorio].palabra;
 };
+
+/**
+ * Carga las monedas ganadas a un usuario.
+ * @param idUsuario El ID del usuario.
+ * @param monedas La cantidad de monedas a agregar.
+ */
+export const insertMoneda = async (idUsuario: number, monedas: number) => {
+  if (!idUsuario || typeof idUsuario !== 'number') {
+    console.error('Parámetros inválidos:', { idUsuario });
+    return;
+  }
+
+  try {
+    const db = await getDatabase();
+    const tx = db.transaction('Usuario', 'readwrite');
+    const store = tx.objectStore('Usuario');
+    
+    const user = await store.get(idUsuario);
+
+    if (!user) {
+      console.error(`No se encontró usuario con IdUsuario=${idUsuario}`);
+      return;
+    }
+
+    user.monedas = (user.monedas ?? 0) + monedas;
+
+    await store.put(user);
+    await tx.done;
+
+    console.log(`Datos actualizados para usuario ${idUsuario}`)
+    
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+  }
+};
+
+/**
+ * Resta una vida al usuario.
+ * @param idUsuario El ID del usuario.
+ */
+export const restarVida = async (idUsuario: number) => {
+  if (!idUsuario || typeof idUsuario !== 'number') {
+    console.error('idUsuario inválido:', idUsuario);
+    return;
+  }
+  const db = await getDatabase();
+  const tx = db.transaction('Vida', 'readwrite');
+  const store = tx.objectStore('Vida');
+  const index = store.index('IdUsuario');
+
+  const vida = await index.get(idUsuario) as Vida;
+
+  if (vida && vida?.cantidad! > 0) {
+    vida.cantidad! -= 1;
+    await store.put(vida);
+    await tx.done;
+    console.log("Se retiró una vida");
+  } else {
+    console.warn('El usuario no tiene vidas disponibles');
+  }
+};
+
+// Restar herramienta utilizada
+export const restarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda') => {
+
+  if (!idUsuario || typeof idUsuario !== 'number') {
+    console.error('Parámetros inválidos:', { idUsuario });
+    return;
+  }
+
+  try {
+    const db = await getDatabase();
+    const tx = db.transaction('Herramienta', 'readwrite');
+    const store = tx.objectStore('Herramienta');
+    const index = store.index('IdUsuario');
+
+    const herramientasUsuario: Herramienta[] = await index.getAll(idUsuario);
+    const herramienta = herramientasUsuario.find((h) => h.tipo === tipo);
+
+    if (!herramienta) {
+      console.error(`No se encontró herramienta '${tipo}' en usuario ${idUsuario}`);
+      return;
+    }
+
+    if (!herramienta.cantidad || herramienta.cantidad <= 0) {
+      console.warn(`No quedan herramientas de tipo '${tipo}' para el usuario ${idUsuario}`);
+      return;
+    }
+
+    herramienta.cantidad -= 1;
+
+    await store.put(herramienta);
+    await tx.done;
+
+    console.log(`Datos actualizados para usuario ${idUsuario}`)
+    
+  } catch (error) {
+    console.error('Error al cargar datos:', error);
+  }
+}
+
+/**
+ * Carga los datos de un nivel al finalizar el juego.
+ * @param idUsuario El ID del usuario.
+ * @param idNivel El ID del nivel.
+ * @param puntaje El puntaje obtenido.
+ * @param tiempo El tiempo utilizado.
+ */
+export const cargarDatosNivel = async (idUsuario: number, idNivel: number, puntaje: number, tiempo: number) => {
+  const db = await getDatabase();
+  const tx = db.transaction('NivelXUsuario', 'readwrite');
+  const store = tx.objectStore('NivelXUsuario');
+  const index = store.index('IdUsuario_IdNivel');
+
+  const nivel = await index.get([idUsuario, idNivel]) as NivelXUsuario;
+
+  if (nivel) {
+    if (puntaje > nivel.puntaje) {
+      nivel.puntaje = puntaje;
+    }
+    if (tiempo < nivel.tiempo) {
+      nivel.tiempo = tiempo;
+    }
+    await store.put(nivel);
+    await tx.done;
+    console.log("Se actualizaron los datos del nivel");
+  } else {
+    console.warn('No se encontró el nivel para actualizar');
+  }
+};
+
+// --- Funciones de Autenticación y Registro ---
 
 /**
  * Valida las credenciales de un usuario.
@@ -129,6 +263,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
 };
 
 // --- Funciones para Home y Usuario ---
+
 /**
  * Obtiene la información de las herramientas de un usuario.
  * @param idUsuario El ID del usuario.
@@ -195,7 +330,44 @@ export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuar
   return levels;
 };
 
-// --- Funciones de Juego ---
+/**
+ * Obtiene las estadísticas de un usuario.
+ * @param idUsuario El ID del usuario.
+ * @returns Un objeto con la racha y el puntaje máximo.
+ */
+export const getEstadisticasUsuario = async (idUsuario: number) => {
+  const db = await getDatabase();
+  
+  const nivelesCompletados = await db.getAllFromIndex('NivelXUsuario', 'IdUsuario', idUsuario);
+  const racha = nivelesCompletados.filter(n => n.puntaje > 0).length; // Suponiendo que puntaje > 0 significa completado
+  
+  const puntajeMaximo = nivelesCompletados.reduce((max, nivel) => 
+    nivel.puntaje > max ? nivel.puntaje : max, 0);
+  
+  return {
+    racha,
+    puntajeMaximo
+  };
+};
+
+/**
+ * Actualiza la información de un usuario.
+ * @param usuario El objeto de usuario actualizado.
+ * @returns true si la actualización fue exitosa, false de lo contrario.
+ */
+export const actualizarUsuario = async (usuario: Usuario): Promise<boolean> => {
+  try {
+    const db = await getDatabase();
+    await db.put('Usuario', usuario);
+    return true;
+  } catch (error) {
+    console.error("Error actualizando usuario:", error);
+    return false;
+  }
+};
+
+// --- Funciones para Nivel y Tienda ---
+
 /**
  * Crea o recupera un nuevo nivel para un usuario.
  * @param idUsuario El ID del usuario.
@@ -282,124 +454,6 @@ export const updateNivelXUsuario = async (nivelActualizado: NivelXUsuario): Prom
 };
 
 /**
- * Resta una vida al usuario.
- * @param idUsuario El ID del usuario.
- */
-export const restarVida = async (idUsuario: number) => {
-  if (!idUsuario || typeof idUsuario !== 'number') {
-    console.error('idUsuario inválido:', idUsuario);
-    return;
-  }
-  const db = await getDatabase();
-  const tx = db.transaction('Vida', 'readwrite');
-  const store = tx.objectStore('Vida');
-  const index = store.index('IdUsuario');
-
-  const vida = await index.get(idUsuario) as Vida;
-
-  if (vida && vida?.cantidad! > 0) {
-    vida.cantidad! -= 1;
-    await store.put(vida);
-    await tx.done;
-    console.log("Se retiró una vida");
-  } else {
-    console.warn('El usuario no tiene vidas disponibles');
-  }
-};
-
-/**
- * Otorga una vida a todos los usuarios.
- */
-export const otorgarVida = async () => {
-  const db = await getDatabase();
-  const tx = db.transaction('Vida', 'readwrite');
-  const store = tx.objectStore('Vida');
-  const allVidas = await store.getAll();
-
-  for (const vida of allVidas) {
-    if (vida.cantidad < 5) { // Límite de vidas
-      vida.cantidad += 1;
-      await store.put(vida);
-    }
-  }
-
-  await tx.done;
-  console.log("Se otorgó una vida a todos los usuarios.");
-};
-
-/**
- * Carga las monedas ganadas a un usuario.
- * @param idUsuario El ID del usuario.
- * @param monedas La cantidad de monedas a agregar.
- */
-export const insertMoneda = async (idUsuario: number, monedas: number) => {
-  if (!idUsuario || typeof idUsuario !== 'number') {
-    console.error('Parámetros inválidos:', { idUsuario });
-    return;
-  }
-
-  try {
-    const db = await getDatabase();
-    const tx = db.transaction('Usuario', 'readwrite');
-    const store = tx.objectStore('Usuario');
-    
-    const user = await store.get(idUsuario);
-
-    if (!user) {
-      console.error(`No se encontró usuario con IdUsuario=${idUsuario}`);
-      return;
-    }
-
-    user.monedas = (user.monedas ?? 0) + monedas;
-
-    await store.put(user);
-    await tx.done;
-
-    console.log(`Datos actualizados para usuario ${idUsuario}`)
-    
-  } catch (error) {
-    console.error('Error al cargar datos:', error);
-  }
-};
-
-/**
- * Obtiene las estadísticas de un usuario.
- * @param idUsuario El ID del usuario.
- * @returns Un objeto con la racha y el puntaje máximo.
- */
-export const getEstadisticasUsuario = async (idUsuario: number) => {
-  const db = await getDatabase();
-  
-  const nivelesCompletados = await db.getAllFromIndex('NivelXUsuario', 'IdUsuario', idUsuario);
-  const racha = nivelesCompletados.filter(n => n.puntaje > 0).length; // Suponiendo que puntaje > 0 significa completado
-  
-  const puntajeMaximo = nivelesCompletados.reduce((max, nivel) => 
-    nivel.puntaje > max ? nivel.puntaje : max, 0);
-  
-  return {
-    racha,
-    puntajeMaximo
-  };
-};
-
-/**
- * Actualiza la información de un usuario.
- * @param usuario El objeto de usuario actualizado.
- * @returns true si la actualización fue exitosa, false de lo contrario.
- */
-export const actualizarUsuario = async (usuario: Usuario): Promise<boolean> => {
-  try {
-    const db = await getDatabase();
-    await db.put('Usuario', usuario);
-    return true;
-  } catch (error) {
-    console.error("Error actualizando usuario:", error);
-    return false;
-  }
-};
-
-// --- Tienda ---
-/**
  * Compra una vida para un usuario.
  * @param idUsuario El ID del usuario.
  * @param costo El costo de la vida.
@@ -459,11 +513,31 @@ export const comprarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayud
   return { ok: true };
 };
 
-// --- Funciones Auxiliares ---
+// --- Funciones de Inicialización ---
+
+/**
+ * Otorga una vida a todos los usuarios.
+ */
+export const otorgarVida = async () => {
+  const db = await getDatabase();
+  const tx = db.transaction('Vida', 'readwrite');
+  const store = tx.objectStore('Vida');
+  const allVidas = await store.getAll();
+
+  for (const vida of allVidas) {
+    if (vida.cantidad < 5) { // Límite de vidas
+      vida.cantidad += 1;
+      await store.put(vida);
+    }
+  }
+
+  await tx.done;
+  console.log("Se otorgó una vida a todos los usuarios.");
+};
+
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
   const db = await getDatabase();
-  const id = await db.add('Nivel', nivel);
-  return id;
+  return db.add('Nivel', nivel);
 };
 
 export const getNiveles = async (): Promise<Nivel[]> => {

@@ -18,7 +18,7 @@ export default function ToolSelector() {
 
   const options = {
     pasa: {
-      description: 'Ideal para cuando el nivel ya no te representa',
+      description: 'Ideal para cuando el nivel ya no te representa. Devuelve la palabra del nivel.',
     },
     ayuda: {
       description: 'Te da una pista sobre que letra puede estar en tu palabra',

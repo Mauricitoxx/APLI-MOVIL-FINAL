@@ -8,7 +8,8 @@ import { NivelXUsuario } from '@/assets/database/type';
 type Props = NativeStackScreenProps<RootStackParamList, 'GameScreen'>;
 
 const GameScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { nivel, onResultado } = route.params;
+  // Ahora se recibe la prop 'onGameEnd' en lugar de 'onResultado'
+  const { nivel, onGameEnd } = route.params;
 
   const handleGameEnd = (ganado: boolean, puntos?: number , tiempo?: number) => {
 
@@ -16,17 +17,18 @@ const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     
     const resultado: NivelXUsuario = { ...nivel, puntaje: puntos ?? 0, tiempo: tiempo ?? 0, };
     
-    onResultado(resultado);
+    // Se llama a la función onGameEnd que se recibió como prop
+    onGameEnd(resultado);
 
     navigation.goBack();
   };
 
   return (
     <View style={{ flex: 1 }}>
+      {/* Se pasa la función 'handleGameEnd' a la prop 'onGameEnd' */}
       <GameWordle IdNivel={nivel.IdNivel} palabraNivel={nivel.palabra} onGameEnd={handleGameEnd} />
     </View>
   );
 };
 
 export default GameScreen;
-
