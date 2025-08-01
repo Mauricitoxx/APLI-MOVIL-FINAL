@@ -43,7 +43,7 @@ export default function Home() {
     if (!userId) {
       console.log('Home: userId es null/undefined, no se pueden obtener datos ni niveles.');
       setNivelesParaListLevelsHome([{
-        id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 60,
+        id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 0,
         completado: false, disponible: true, bloqueado: false,
         palabra: null, intento: 0, recompensa_intento: '', IdUsuario: 0, IdNivel: 1
       }]);
@@ -113,7 +113,7 @@ export default function Home() {
           idForFlatList: String(i),
           level: i,
           puntaje: rawNivel?.puntaje ?? 0,
-          tiempo: rawNivel?.tiempo ?? 60,
+          tiempo: rawNivel?.tiempo ?? 0,
           completado: completado,
           disponible: disponible,
           bloqueado: bloqueado,
