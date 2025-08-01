@@ -1,21 +1,97 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, Modal, TextInput, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { 
+  getUsuarioPorId, 
+  getVidas, 
+  getEstadisticasUsuario,
+  actualizarUsuario,
+  getNivelesXUsuario
+} from '@/assets/database/query';
+import { useUser } from '@/context/UserContext';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const [profileName, setProfileName] = useState('Maurinho');
-  const [profileImage, setProfileImage] = useState('https://imgs.search.brave.com/NipyceKQPtZaPfH0RF48R5LhQer1pG9rgXuw-A9vRaI/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9jZG4u/dmVjdG9yc3RvY2su/Y29tL2kvNTAwcC8x/MD2jL3VzZXItaWNv/bi1taW5pbWFsLWRl/c2lnbi1sb2dvLXNp/bGhvdWV0dGUtbW9k/ZXJuLXZlY3Rvci01/MzI3MTA2OS5qcGc');
+  const { userId } = useUser();
+  
+  const [profileName, setProfileName] = useState('');
+  const [profileImage, setProfileImage] = useState('https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png');
+  const [monedas, setMonedas] = useState(0);
+  const [vidas, setVidas] = useState(0);
+  const [racha, setRacha] = useState(0);
+  const [puntajeMaximo, setPuntajeMaximo] = useState(0);
+  const [nivel, setNivel] = useState(0);
+  
   const [showEditModal, setShowEditModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [tempName, setTempName] = useState(profileName);
-  const [tempImage, setTempImage] = useState(profileImage);
+  const [tempName, setTempName] = useState('');
+  const [tempImage, setTempImage] = useState('');
 
-  const handleSaveProfile = () => {
-    setProfileName(tempName);
-    setProfileImage(tempImage);
-    setShowEditModal(false);
+  // Cargar datos del usuario
+  useEffect(() => {
+    const cargarDatosUsuario = async () => {
+      if (!userId) return;
+      
+      try {
+        // Obtener datos básicos del usuario
+        const usuario = await getUsuarioPorId(userId);
+        if (usuario) {
+          setProfileName(usuario.nombre_usuario || '');
+          setTempName(usuario.nombre_usuario || '');
+          setMonedas(usuario.monedas || 0);
+          setRacha(usuario.racha || 0);
+        }
+        
+        // Obtener vidas del usuario
+        const vidasUsuario = await getVidas(userId);
+        if (vidasUsuario.length > 0) {
+          setVidas(vidasUsuario[0].cantidad || 0);
+        }
+        
+        // Obtener estadísticas adicionales
+        const estadisticas = await getEstadisticasUsuario(userId);
+        setPuntajeMaximo(estadisticas.puntajeMaximo || 0);
+        
+        // Obtener nivel máximo alcanzado
+        const nivelesUsuario = await getNivelesXUsuario(userId);
+        if (nivelesUsuario.length > 0) {
+          const maxNivel = Math.max(...nivelesUsuario.map(n => n.IdNivel));
+          setNivel(maxNivel);
+        }
+        
+      } catch (error) {
+        console.error("Error cargando datos del usuario:", error);
+      }
+    };
+    
+    cargarDatosUsuario();
+  }, [userId]);
+
+  const handleSaveProfile = async () => {
+    if (!userId) return;
+    
+    try {
+      // Obtener usuario actual
+      const usuario = await getUsuarioPorId(userId);
+      if (!usuario) return;
+      
+      // Actualizar nombre de usuario
+      usuario.nombre_usuario = tempName;
+      
+      // Guardar cambios en la base de datos
+      const actualizado = await actualizarUsuario(usuario);
+      
+      if (actualizado) {
+        setProfileName(tempName);
+        setProfileImage(tempImage);
+        setShowEditModal(false);
+      } else {
+        console.error("Error al actualizar el perfil");
+      }
+    } catch (error) {
+      console.error("Error al guardar el perfil:", error);
+    }
   };
 
   const handleLogout = () => {
@@ -25,7 +101,6 @@ export default function ProfileScreen() {
 
   const handleImageChange = () => {
     // En una aplicación real, esto abriría el selector de imágenes
-    // Por ahora simularemos un cambio de imagen
     setTempImage('https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png');
   };
 
@@ -34,12 +109,8 @@ export default function ProfileScreen() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.currency}>
-          <Feather name="dollar-sign" size={18} color="#fff" style={{ marginRight: 4 }} />
-          <Text style={styles.currencyText}>500</Text>
         </View>
         <View style={styles.currency}>
-          <Feather name="heart" size={18} color="#fff" style={{ marginRight: 4 }} />
-          <Text style={styles.currencyText}>2</Text>
         </View>
       </View>
 
@@ -51,29 +122,29 @@ export default function ProfileScreen() {
         />
         <Text style={styles.profileName}>{profileName}</Text>
         <Text style={styles.profileRank}>Rango: New York</Text>
-        <Text style={styles.profileLevel}>Nível 14</Text>
+        <Text style={styles.profileLevel}>Nível {nivel}</Text>
       </View>
 
       {/* Estadísticas */}
       <View style={styles.statsContainer}>
         <View style={styles.statRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>500</Text>
+            <Text style={styles.statValue}>{monedas}</Text>
             <Text style={styles.statLabel}>Monedas</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>2</Text>
+            <Text style={styles.statValue}>{vidas}</Text>
             <Text style={styles.statLabel}>Corazones</Text>
           </View>
         </View>
         
         <View style={styles.statRow}>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>78</Text>
+            <Text style={styles.statValue}>{racha}</Text>
             <Text style={styles.statLabel}>Días de racha</Text>
           </View>
           <View style={styles.statBox}>
-            <Text style={styles.statValue}>465</Text>
+            <Text style={styles.statValue}>{puntajeMaximo}</Text>
             <Text style={styles.statLabel}>Puntaje más alto</Text>
           </View>
         </View>
