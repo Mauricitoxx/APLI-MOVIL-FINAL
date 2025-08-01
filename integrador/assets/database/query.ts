@@ -1,4 +1,4 @@
-import { getDatabase } from './db';
+import { getDB } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
 // --- Funciones de Lógica del Juego ---
@@ -7,8 +7,8 @@ import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from 
  * Obtiene una palabra aleatoria de una longitud aleatoria (entre 2 y 5) de la base de datos.
  * @returns La palabra encontrada o null si no hay palabras de esa longitud.
  */
-  export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
-  const db = await getDatabase();
+export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
+  const db = await getDB();
   const tx = db.transaction('Palabras', 'readonly');
   const store = tx.objectStore('Palabras');
 
@@ -39,7 +39,7 @@ export const insertMoneda = async (idUsuario: number, monedas: number) => {
   }
 
   try {
-    const db = await getDatabase();
+    const db = await getDB();
     const tx = db.transaction('Usuario', 'readwrite');
     const store = tx.objectStore('Usuario');
     
@@ -71,7 +71,7 @@ export const restarVida = async (idUsuario: number) => {
     console.error('idUsuario inválido:', idUsuario);
     return;
   }
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('Vida', 'readwrite');
   const store = tx.objectStore('Vida');
   const index = store.index('IdUsuario');
@@ -97,7 +97,7 @@ export const restarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda
   }
 
   try {
-    const db = await getDatabase();
+    const db = await getDB();
     const tx = db.transaction('Herramienta', 'readwrite');
     const store = tx.objectStore('Herramienta');
     const index = store.index('IdUsuario');
@@ -135,7 +135,7 @@ export const restarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda
  * @param tiempo El tiempo utilizado.
  */
 export const cargarDatosNivel = async (idUsuario: number, idNivel: number, puntaje: number, tiempo: number) => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('NivelXUsuario', 'readwrite');
   const store = tx.objectStore('NivelXUsuario');
   const index = store.index('IdUsuario_IdNivel');
@@ -175,7 +175,7 @@ export const cargarDatosNivel = async (idUsuario: number, idNivel: number, punta
  * @returns El objeto de usuario si las credenciales son válidas, de lo contrario, null.
  */
 export const validarUsuario = async (email: string, password: string): Promise<Usuario | null> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('Usuario', 'readonly');
   const store = tx.objectStore('Usuario');
   const allUsers = await store.getAll();
@@ -194,7 +194,7 @@ export const validarUsuario = async (email: string, password: string): Promise<U
  * @returns Un objeto indicando si la operación fue exitosa.
  */
 export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
-  const db = await getDatabase();
+  const db = await getDB();
 
   const tempTx = db.transaction('Usuario', 'readonly');
   const usuarioStore = tempTx.objectStore('Usuario');
@@ -216,7 +216,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
     return { ok: false, error: 'El nombre de usuario ya está en uso' };
   }
 
-  const palabraInicial = await obtenerPalabraLongitud();
+  const palabraInicial = await obtenerPalabraLongitud(3);
   if (!palabraInicial) {
     return { ok: false, error: 'No hay palabras en la base de datos para el nivel inicial' };
   }
@@ -279,7 +279,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
  * @returns Un array con las herramientas del usuario.
  */
 export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('Herramienta', 'readonly');
   const store = tx.objectStore('Herramienta');
   const index = store.index('IdUsuario');
@@ -294,7 +294,7 @@ export const getHerramienta = async (idUsuario: number): Promise<Herramienta[]> 
  * @returns Un array con las vidas del usuario.
  */
 export const getVidas = async (idUsuario: number): Promise<Vida[]> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('Vida', 'readonly');
   const store = tx.objectStore('Vida');
   const index = store.index('IdUsuario');
@@ -309,7 +309,7 @@ export const getVidas = async (idUsuario: number): Promise<Vida[]> => {
  * @returns El objeto de usuario o undefined si no se encuentra.
  */
 export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('Usuario', 'readonly');
   const store = tx.objectStore('Usuario');
   const usuario = await store.get(id);
@@ -323,7 +323,7 @@ export const getUsuarioPorId = async (id: number): Promise<Usuario | undefined> 
  * @returns Un array de objetos NivelXUsuario.
  */
 export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuario[]> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('NivelXUsuario', 'readonly');
   const store = tx.objectStore('NivelXUsuario');
   const index = store.index('IdUsuario');
@@ -345,7 +345,7 @@ export const getNivelesXUsuario = async (idUsuario: number): Promise<NivelXUsuar
  * @returns Un objeto con la racha y el puntaje máximo.
  */
 export const getEstadisticasUsuario = async (idUsuario: number) => {
-  const db = await getDatabase();
+  const db = await getDB();
   
   const nivelesCompletados = await db.getAllFromIndex('NivelXUsuario', 'IdUsuario', idUsuario);
   const racha = nivelesCompletados.filter(n => n.puntaje > 0).length; // Suponiendo que puntaje > 0 significa completado
@@ -366,7 +366,7 @@ export const getEstadisticasUsuario = async (idUsuario: number) => {
  */
 export const actualizarUsuario = async (usuario: Usuario): Promise<boolean> => {
   try {
-    const db = await getDatabase();
+    const db = await getDB();
     await db.put('Usuario', usuario);
     return true;
   } catch (error) {
@@ -385,7 +385,7 @@ export const actualizarUsuario = async (usuario: Usuario): Promise<boolean> => {
  * @returns El registro del nivel creado o existente, o null si falla.
  */
 export const insertNivelXUsuario = async (idUsuario: number, IdNivel: number, palabra: string): Promise<NivelXUsuario | null> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('NivelXUsuario', 'readwrite');
   const store = tx.objectStore('NivelXUsuario');
 
@@ -430,7 +430,7 @@ export const insertNivelXUsuario = async (idUsuario: number, IdNivel: number, pa
  * @param nivelActualizado El objeto NivelXUsuario con los datos actualizados.
  */
 export const updateNivelXUsuario = async (nivelActualizado: NivelXUsuario): Promise<void> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('NivelXUsuario', 'readwrite');
   const store = tx.objectStore('NivelXUsuario');
 
@@ -469,7 +469,7 @@ export const updateNivelXUsuario = async (nivelActualizado: NivelXUsuario): Prom
  * @returns Un objeto indicando si la operación fue exitosa.
  */
 export const comprarVida = async (idUsuario: number, costo: number): Promise<{ ok: boolean; error?: string }> => {
-  const db = await getDatabase();
+  const db = await getDB();
 
   const tx = db.transaction(['Usuario', 'Vida'], 'readwrite');
   const usuarioStore = tx.objectStore('Usuario');
@@ -499,7 +499,7 @@ export const comprarVida = async (idUsuario: number, costo: number): Promise<{ o
  * @returns Un objeto indicando si la operación fue exitosa.
  */
 export const comprarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayuda', costo: number): Promise<{ ok: boolean; error?: string }> => {
-  const db = await getDatabase();
+  const db = await getDB();
 
   const tx = db.transaction(['Usuario', 'Herramienta'], 'readwrite');
   const usuarioStore = tx.objectStore('Usuario');
@@ -528,7 +528,7 @@ export const comprarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayud
  * Otorga una vida a todos los usuarios.
  */
 export const otorgarVida = async () => {
-  const db = await getDatabase();
+  const db = await getDB();
   const tx = db.transaction('Vida', 'readwrite');
   const store = tx.objectStore('Vida');
   const allVidas = await store.getAll();
@@ -545,36 +545,36 @@ export const otorgarVida = async () => {
 };
 
 export const insertNivel = async (nivel: Nivel): Promise<number> => {
-  const db = await getDatabase();
+  const db = await getDB();
   return db.add('Nivel', nivel);
 };
 
 export const getNiveles = async (): Promise<Nivel[]> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const levels = await db.getAll('Nivel');
   return levels;
 };
 
 export const insertHerramienta = async (herramienta: Herramienta): Promise<number> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const id = await db.add('Herramienta', herramienta);
   return id;
 };
 
 export const insertVida = async (vida: Vida): Promise<number> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const id = await db.add('Vida', vida);
   return id;
 };
 
 export const insertPalabra = async (palabra: Palabras): Promise<number> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const id = await db.add('Palabras', palabra);
   return id;
 };
 
 export const getPalabras = async (): Promise<Palabras[]> => {
-  const db = await getDatabase();
+  const db = await getDB();
   const palabras = await db.getAll('Palabras');
   return palabras;
 };

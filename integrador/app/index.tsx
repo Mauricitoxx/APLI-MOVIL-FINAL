@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { getDatabase, setupDatabase, seedInitialData } from '@/assets/database/db';
+import { getDB, setupIndexedDB } from '@/assets/database/db';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from './Game';
 
@@ -9,19 +9,20 @@ export default function IndexScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   useEffect(() => {
-    const initDatabaseAndSeed = async () => {
+    const initDatabase = async () => {
       try {
         console.log('IndexScreen: Initializing database from index.tsx...');
-        await setupDatabase();
-        await seedInitialData();
+        // Llama a la función principal para configurar la base de datos
+        // La inserción de datos de prueba está ahora dentro de setupIndexedDB
+        await setupIndexedDB(); 
         
-        console.log('IndexScreen: Object stores disponibles:', Array.from((await getDatabase()).objectStoreNames));
+        console.log('IndexScreen: Object stores disponibles:', Array.from((await getDB()).objectStoreNames));
         
       } catch (error) {
         console.error('IndexScreen: Error initializing or seeding database:', error);
       }
     };
-    initDatabaseAndSeed();
+    initDatabase();
   }, []);
 
   return (
