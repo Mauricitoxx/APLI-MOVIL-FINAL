@@ -14,7 +14,8 @@ interface Props {
 const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     // --- Variables de estado y constantes del juego ---
     const idNivel = IdNivel;
-    const longitud = palabraNivel.length;
+    // Aseguramos que palabraNivel no sea null antes de obtener la longitud
+    const longitud = palabraNivel ? palabraNivel.length : 0;
     const intentoMax = 5;
     const [inicioJuego] = useState(Date.now());
     const { userId } = useUser();
@@ -96,6 +97,8 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
 
     // Función para manejar el intento de palabra
     const handleEnter = async () => {
+        if (!palabraNivel) return; // Evita el fallo si la palabra no está definida
+
         console.log("Enter presionado");
         const intento = letrasIngresadas[intentoActual].join('').toLowerCase();
         
@@ -194,13 +197,9 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             <View key={filaIndex} style={styles.row}>
                 {fila.map((letra, index) => {
                     const estilo = getEstiloLetra(letra, index, filaIndex);
-                    // Si la letra ha sido revelada por una herramienta, mostrarla en el color correcto
-                    const letraParaMostrar = (letrasReveladas.includes(palabraNivel[index].toLowerCase()) && filaIndex >= intentoActual) 
-                      ? palabraNivel[index] 
-                      : letra;
                     return (
                         <View key={index} style={[styles.cell, estilo]}>
-                            <Text style={styles.cellText}>{letraParaMostrar.toUpperCase()}</Text>
+                            <Text style={styles.cellText}>{letra.toUpperCase()}</Text>
                         </View>
                     );
                 })}
@@ -210,12 +209,12 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
 
     // Obtiene el estilo de la celda de la cuadrícula
     const getEstiloLetra = (letra: string, index: number, filaIndex: number) => {
+        if (!palabraNivel) return styles.cellEmpty;
+        
         // Si la fila actual no ha sido intentada, la celda está vacía
         if (filaIndex >= intentoActual) {
-            // Si la letra ha sido revelada, se muestra en color correcto
-            if (letrasReveladas.includes(palabraNivel[index].toLowerCase())) {
-                return styles.cellCorrect;
-            }
+            // Se corrige la lógica para que las letras reveladas por herramientas
+            // solo se muestren en el área de pistas y no en la cuadrícula
             return styles.cellEmpty;
         }
         
@@ -278,7 +277,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
 
     // Uso de la herramienta "Revelar Letra"
     const usarAyudaLetra = async () => {
-        if (bloqueado) return;
+        if (bloqueado || !palabraNivel) return;
         setBloqueado(true);
 
         if (cantidadHerraminetas["ayuda"] <= 0) {
@@ -287,10 +286,9 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             return;
         }
 
-        const intentoPlano = letrasIngresadas.flat();
         const letrasNoReveladas = palabraNivel
             .split('')
-            .filter((letra) => !intentoPlano.includes(letra) && !letrasReveladas.includes(letra));
+            .filter((letra) => !letrasReveladas.includes(letra.toLowerCase()));
 
         if (letrasNoReveladas.length > 0) {
             const letraRevelada = letrasNoReveladas[0].toLowerCase();
@@ -313,7 +311,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
 
     // Uso de la herramienta "Pasar Palabra"
     const usarPasaPalabra = async () => {
-        if (bloqueado) return;
+        if (bloqueado || !palabraNivel) return;
         setBloqueado(true);
 
         if (cantidadHerraminetas["pasa"] === 0) {
@@ -339,16 +337,19 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Adivina la palabra</Text>
-            <Text style={styles.subtitle}>Tienes {5-intentoActual} intentos</Text>
+            <Text style={styles.subtitle}>Tienes {intentoMax - intentoActual} intentos</Text>
             
             {/* Contenedor para mostrar las letras reveladas por la herramienta */}
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 10 }}> 
-                {letrasReveladas.length > 0 && (
-                    <Text style={{ fontSize: 18, color: 'orange', marginHorizontal: 4, fontWeight: 'bold' }}>
-                        Pistas: {letrasReveladas.map(l => l.toUpperCase()).join(', ')}
+            {letrasReveladas.length > 0 && (
+              <View style={styles.pistaContainer}>
+                <Text style={styles.pistaTextTitle}>Pistas:</Text>
+                {letrasReveladas.map((letra, i) => (
+                    <Text key={i} style={styles.pistaText}>
+                        {letra.toUpperCase()}
                     </Text>
-                )}
-            </View>
+                ))}
+              </View>
+            )}
             
             {/* Cuadrícula de juego */}
             {letrasIngresadas.map(renderFila)}
@@ -431,12 +432,21 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
     
-    palabraCompleta: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: '#4CAF50',
-        marginVertical: 10,
-        textAlign: 'center',
+    pistaContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      marginVertical: 10,
+      gap: 5
+    },
+    pistaTextTitle: {
+      fontSize: 18,
+      color: 'orange',
+      fontWeight: 'bold',
+    },
+    pistaText: {
+      fontSize: 18,
+      color: 'orange',
+      marginHorizontal: 2,
     },
     contenedorHerramientas: {
         flexDirection: 'row',

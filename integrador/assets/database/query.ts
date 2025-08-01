@@ -7,7 +7,7 @@ import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from 
  * Obtiene una palabra aleatoria de una longitud aleatoria (entre 2 y 5) de la base de datos.
  * @returns La palabra encontrada o null si no hay palabras de esa longitud.
  */
-export const obtenerPalabraLongitud = async (): Promise<string | null> => {
+  export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
   const db = await getDatabase();
   const tx = db.transaction('Palabras', 'readonly');
   const store = tx.objectStore('Palabras');
@@ -15,19 +15,14 @@ export const obtenerPalabraLongitud = async (): Promise<string | null> => {
   const todasLasPalabras = await store.getAll();
   await tx.done;
 
-  // Genera una longitud de palabra aleatoria entre 2 y 5 (inclusive)
-  const longitudAleatoria = Math.floor(Math.random() * (5 - 2 + 1)) + 2;
-  console.log(`query.ts: Buscando palabra con longitud aleatoria: ${longitudAleatoria}`);
-
-  // Filtra las palabras por la longitud aleatoria generada
-  const palabrasFiltradas = todasLasPalabras.filter(p => p.palabra.length === longitudAleatoria);
+  console.log(`query.ts: Buscando palabra con longitud: ${longitud}`);
+  const palabrasFiltradas = todasLasPalabras.filter(p => p.palabra.length === longitud);
 
   if (palabrasFiltradas.length === 0) {
-    console.warn(`query.ts: No se encontraron palabras con longitud ${longitudAleatoria}.`);
+    console.warn(`query.ts: No se encontraron palabras con longitud ${longitud}.`);
     return null;
   }
 
-  // Selecciona una palabra aleatoria de la lista filtrada
   const indiceAleatorio = Math.floor(Math.random() * palabrasFiltradas.length);
   return palabrasFiltradas[indiceAleatorio].palabra;
 };

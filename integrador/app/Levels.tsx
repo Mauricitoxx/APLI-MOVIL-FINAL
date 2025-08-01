@@ -128,11 +128,15 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
               status = 'locked';
             }
             
+            // Calculamos la longitud de la palabra en base al nivel
+            const longitudPalabra = 2 + Math.ceil(i / 5);
+
             generatedLevels.push({
               id: nivelFromMap?.id || null,
               puntaje: nivelFromMap?.puntaje ?? 0,
               tiempo: nivelFromMap?.tiempo ?? 60,
-              palabra: nivelFromMap?.palabra ?? null,
+              // La palabra se obtiene más adelante
+              palabra: null, 
               intento: nivelFromMap?.intento ?? 0,
               recompensa_intento: nivelFromMap?.recompensa_intento ?? '0',
               IdUsuario: userId,

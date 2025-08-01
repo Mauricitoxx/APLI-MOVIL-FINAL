@@ -26,10 +26,12 @@ export default function Game({ route, navigation }: Props) {
           return;
         }
         
-        // Si no hay palabra, la buscamos y la insertamos en la DB
         if (!tempNivel.palabra) {
           console.log(`Game: Buscando palabra para el nivel ${tempNivel.IdNivel}...`);
-          const palabraObtenida = await obtenerPalabraLongitud();
+          // Calculamos la longitud de la palabra basándonos en el IdNivel
+          const longitudPalabra = 2 + Math.ceil(tempNivel.IdNivel / 5);
+          const palabraObtenida = await obtenerPalabraLongitud(longitudPalabra);
+          
           if (palabraObtenida) {
             tempNivel.palabra = palabraObtenida;
             // Intentamos insertar el nivel en la DB
