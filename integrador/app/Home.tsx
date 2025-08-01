@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -29,48 +29,33 @@ export default function Home() {
 
   const options = {
     verde: {
-      description: 'VERDE significa que la letra está en la palabra y en la posición CORRECTA',
+      description: 'VERDE significa que la letra está en la palabra y en la posición CORRECTA'
     },
     amarilla: {
-      description: 'AMARILLO significa que la letra está presente en la palabra, pero en la posición INCORRECTA',
+      description: 'AMARILLO significa que la letra está presente en la palabra, pero en la posición INCORRECTA'
     },
     gris: {
-      description: 'GRIS significa que la letra NO está presente en la palabra',
-    },
+      description: 'GRIS significa que la letra NO está presente en la palabra'
+    }
   };
 
   const fetchDataAndPrepareLevels = useCallback(async () => {
     if (!userId) {
       console.log('Home: userId es null/undefined, no se pueden obtener datos ni niveles.');
-      // Inicializar con un nivel por defecto si no hay usuario
-      setNivelesParaListLevelsHome([
-        {
-          id: null,
-          idForFlatList: '1',
-          level: 1,
-          puntaje: 0,
-          tiempo: 60,
-          completado: false,
-          disponible: true,
-          bloqueado: false,
-          palabra: null,
-          intento: 0,
-          recompensa_intento: '',
-          IdUsuario: 0,
-          IdNivel: 1,
-        },
-      ]);
+      setNivelesParaListLevelsHome([{
+        id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 60,
+        completado: false, disponible: true, bloqueado: false,
+        palabra: null, intento: 0, recompensa_intento: '', IdUsuario: 0, IdNivel: 1
+      }]);
       return;
     }
 
     try {
-      // Obtener datos del usuario (vidas y monedas)
       const vidasData = await getVidas(userId);
       setVidas(vidasData.length > 0 ? vidasData[0].cantidad ?? 0 : 0);
       const datosUsuario = await getUsuarioPorId(userId);
       setMonedas(datosUsuario?.monedas ?? 0);
 
-      // Obtener y preparar niveles para ListLevels
       const nivelesExistentesDb: NivelXUsuario[] = await getNivelesXUsuario(userId);
       console.log('Home: Niveles existentes obtenidos de DB (for display):', nivelesExistentesDb);
 
@@ -79,7 +64,6 @@ export default function Home() {
         allRelevantLevelsMap.set(nivel.IdNivel, nivel);
       });
 
-      // Asegurarse de que el nivel 1 exista
       if (!allRelevantLevelsMap.has(1)) {
         const palabraInicial = await obtenerPalabraLongitud(3);
         if (palabraInicial) {
@@ -215,6 +199,20 @@ export default function Home() {
     }, [fetchDataAndPrepareLevels])
   );
 
+  const handlePlayButton = () => {
+    const nivelActual = nivelesParaListLevelsHome.find(nivel => nivel.disponible && !nivel.completado && nivel.palabra !== null);
+    
+    if (nivelActual && nivelActual.palabra) {
+      console.log('Home: Navegando a GameScreen para el siguiente nivel disponible:', nivelActual.level);
+      navigation.navigate('GameScreen', {
+        nivel: nivelActual,
+        onGameEnd: handleGameResult,
+      });
+    } else {
+      Alert.alert('¡No hay niveles disponibles!', 'Has completado todos los niveles o hay un error al cargar el próximo nivel.');
+    }
+  };
+
   function capitalize(color: string) {
     return color.charAt(0).toUpperCase() + color.slice(1);
   }
@@ -291,7 +289,7 @@ export default function Home() {
           </View>
         </View>
       </ScrollView>
-      <TouchableOpacity style={styles.playButton}>
+      <TouchableOpacity style={styles.playButton} onPress={handlePlayButton}>
         <Text style={styles.playText}>Jugar</Text>
       </TouchableOpacity>
       <Footer />

@@ -1,9 +1,10 @@
 import React, { useState } from "react";
-import { View, Text, Button, StyleSheet, Image, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { useNavigation } from "@react-navigation/native"; 
 import { NivelXUsuario } from '@/assets/database/type';
+import { useNavigation } from "@react-navigation/native";
 
+// Definición de todos los tipos de pantalla en un solo lugar
 export type RootStackParamList = {
   Index: undefined;
   Login: undefined;
@@ -17,6 +18,10 @@ export type RootStackParamList = {
   Levels: {
     onGameResultFromHome?: (nivelActualizado: NivelXUsuario | null) => void;
   };
+  GameScreen: {
+    nivel: NivelXUsuario;
+    onGameEnd: (nivelActualizado: NivelXUsuario | null) => void;
+  };
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
@@ -24,37 +29,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 export default function Game({ route, navigation }: Props) {
   const { nivel, onResultado = () => {} } = route.params;
 
-  const [isPlaying, setIsPlaying] = useState(false);
-
   const handlePlayGame = () => {
-    setIsPlaying(true);
-    console.log('Game: Iniciando juego para Nivel', nivel.IdNivel);
-  };
-
-  const completarNivel = () => {
-    const nivelActualizado: NivelXUsuario = {
-      ...nivel,
-      puntaje: 100,
-      tiempo: 45,
-      intento: (nivel.intento || 0) + 1,
-      recompensa_intento: '100',
-    };
-    console.log('Game: Completar Nivel - Calling onResultado with:', nivelActualizado);
-    onResultado(nivelActualizado);
-    navigation.goBack();
-  };
-
-  const noCompletarNivel = () => {
-    const nivelActualizado: NivelXUsuario = {
-      ...nivel,
-      puntaje: 0,
-      tiempo: 9999,
-      intento: (nivel.intento || 0) + 1,
-      recompensa_intento: '0',
-    };
-    console.log('Game: No Completar Nivel - Calling onResultado with:', nivelActualizado);
-    onResultado(nivelActualizado);
-    navigation.goBack();
+    console.log('Game: Navegando a GameScreen para Nivel', nivel.IdNivel);
+    navigation.navigate('GameScreen', {
+      nivel: nivel,
+      onGameEnd: onResultado,
+    });
   };
 
   const volverSinCambios = () => {
@@ -66,10 +46,10 @@ export default function Game({ route, navigation }: Props) {
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Image
+        <Image 
           source={require('../assets/images/statue_of_liberty.jpg')}
           style={styles.cardBackgroundImage}
-          resizeMode="cover"
+          resizeMode="cover" 
         />
         <View style={styles.cardContent}>
           <Text style={styles.cardTitle}>Nivel {nivel.IdNivel}</Text>
@@ -89,21 +69,14 @@ export default function Game({ route, navigation }: Props) {
         </View>
       </View>
 
-      {!isPlaying ? (
-        <View style={styles.buttonGroup}>
-          <TouchableOpacity style={styles.playButton} onPress={handlePlayGame}>
-            <Text style={styles.playButtonText}>Jugar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.backButton} onPress={volverSinCambios}>
-            <Text style={styles.backButtonText}>Volver</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <View style={styles.buttonGroup}>
-          <Button title="Completar Nivel" onPress={completarNivel} color="#4CAF50" />
-          <Button title="No Completar Nivel" onPress={noCompletarNivel} color="#F44336" />
-        </View>
-      )}
+      <View style={styles.buttonGroup}>
+        <TouchableOpacity style={styles.playButton} onPress={handlePlayGame}>
+          <Text style={styles.playButtonText}>Jugar</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.backButton} onPress={volverSinCambios}>
+          <Text style={styles.backButtonText}>Volver</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
