@@ -2,7 +2,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 
 let dbInstance: IDBPDatabase | null = null;
 const DB_NAME = 'AppDB';
-const DB_VERSION = 26; 
+const DB_VERSION = 28; 
 
 export const setupIndexedDB = async (): Promise<void> => {
   console.log('Inicializando BD...');
@@ -58,18 +58,25 @@ export const setupIndexedDB = async (): Promise<void> => {
       console.log(`Seeding initial data into ${storeName}`);
       for (const item of defaultItems) {
         try {
+          if (storeName === 'Palabras' && item.palabra) {
+            item.palabra = item.palabra.normalize('NFC');
+          }
           await store.add(item);
         } catch (e: any) {
           console.warn(`Could not add item to ${storeName}:`, item, e.name, e.message);
           if (e.name === 'ConstraintError') {
-            console.warn(`Likely duplicate key for ${storeName}:`, item);
+            console.warn(`Likely duplicate key for ${storeName}:`, item.palabra);
           }
         }
       }
       await tx.done;
     } else {
       console.log(`${storeName} already has ${count} items. Skipping seeding.`);
-      try { tx.abort(); } catch(e) {};
+      try { 
+        tx.abort(); 
+      } catch (e) {
+        console.log(e);
+      }
     }
   };
 
@@ -96,7 +103,7 @@ export const setupIndexedDB = async (): Promise<void> => {
         { cantidad: 3, IdUsuario: 2 }
       ],
       Palabras: [
-        { palabra: 'ejemplo' }, { palabra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' },
+        { palabra: 'ejemplo' }, { palasbra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' },
         { palabra: 'luz' }, { palabra: 'ojo' }, { palabra: 'voz' }, { palabra: 'te' }, { palabra: 'pan' },
         { palabra: 'rio' }, { palabra: 'sal' }, { palabra: 'casa' }, { palabra: 'luna' }, { palabra: 'flor' },
         { palabra: 'toro' }, { palabra: 'piel' }, { palabra: 'cine' }, { palabra: 'tren' }, { palabra: 'mesa' },
@@ -116,7 +123,6 @@ export const setupIndexedDB = async (): Promise<void> => {
         { palabra: 'dólar' }, { palabra: 'túnel' }, { palabra: 'límite' }, { palabra: 'éxito' }, { palabra: 'héroe' }, { palabra: 'razón' },
         { palabra: 'césped' }, { palabra: 'ángel' }, { palabra: 'tórax' }, { palabra: 'táctil' }, { palabra: 'difícil' }, { palabra: 'fácil' },
         { palabra: 'pésimo' }, { palabra: 'público' }, { palabra: 'técnico' }, { palabra: 'biología' }, { palabra: 'lámpara' },
-      
       ]
     };
     for (const storeName in defaultData) {
