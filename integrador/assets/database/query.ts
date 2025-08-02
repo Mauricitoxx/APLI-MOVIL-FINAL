@@ -107,7 +107,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
 
     await nivelXUsuarioStore.add({
       puntaje: 0,
-      tiempo: 0, // El tiempo inicial es 0
+      tiempo: 0, 
       palabra: palabraInicial,
       intento: 0,
       recompensa_intento: '0',

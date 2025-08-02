@@ -109,7 +109,7 @@ export default function Game({ route, navigation }: Props) {
           
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Intentos :</Text>
-            <Text style={styles.infoTextValue}>{nivelConPalabra.intento || 5}</Text>
+            <Text style={styles.infoTextValue}>{nivelConPalabra.intento || 0}</Text>
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Tiempo:</Text>
