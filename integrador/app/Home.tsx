@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useUser } from '@/context/UserContext';
@@ -26,6 +26,8 @@ export default function Home() {
   const [vidas, setVidas] = useState<number | undefined>(undefined);
   const [nivelesParaListLevelsHome, setNivelesParaListLevelsHome] = useState<any[]>([]);
   const [selected, setSelected] = useState<'verde' | 'amarilla' | 'gris'>('verde');
+  const [isLoading, setIsLoading] = useState(true);
+  const [nextLevelToPlay, setNextLevelToPlay] = useState<NivelXUsuario | null>(null);
 
   const options = {
     verde: {
@@ -43,10 +45,11 @@ export default function Home() {
     if (!userId) {
       console.log('Home: userId es null/undefined, no se pueden obtener datos ni niveles.');
       setNivelesParaListLevelsHome([{
-        id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 60,
+        id: null, idForFlatList: '1', level: 1, puntaje: 0, tiempo: 0,
         completado: false, disponible: true, bloqueado: false,
         palabra: null, intento: 0, recompensa_intento: '', IdUsuario: 0, IdNivel: 1
       }]);
+      setIsLoading(false);
       return;
     }
 
@@ -113,7 +116,7 @@ export default function Home() {
           idForFlatList: String(i),
           level: i,
           puntaje: rawNivel?.puntaje ?? 0,
-          tiempo: rawNivel?.tiempo ?? 60,
+          tiempo: rawNivel?.tiempo ?? 0,
           completado: completado,
           disponible: disponible,
           bloqueado: bloqueado,
@@ -126,10 +129,16 @@ export default function Home() {
       }
 
       setNivelesParaListLevelsHome(levelsToShow);
+      // Establecemos el siguiente nivel a jugar
+      const nextLevel = levelsToShow.find(n => n.IdNivel === nivelActualAJugar);
+      setNextLevelToPlay(nextLevel || null);
+      
       console.log('Home: Niveles PROCESADOS FINAL para ListLevels (showing only completed + next):', levelsToShow);
     } catch (err) {
       console.error('Home: Error obteniendo y preparando niveles:', err);
       Alert.alert('Error', 'Hubo un problema al cargar los datos. Intenta de nuevo.');
+    } finally {
+      setIsLoading(false);
     }
   }, [userId]);
 
@@ -193,28 +202,41 @@ export default function Home() {
     }
   }, [userId, fetchDataAndPrepareLevels]);
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchDataAndPrepareLevels();
-    }, [fetchDataAndPrepareLevels])
-  );
-
+  useFocusEffect(fetchDataAndPrepareLevels);
+  
   const handlePlayButton = () => {
-    const nivelActual = nivelesParaListLevelsHome.find(nivel => nivel.disponible && !nivel.completado && nivel.palabra !== null);
-    
-    if (nivelActual && nivelActual.palabra) {
-      console.log('Home: Navegando a GameScreen para el siguiente nivel disponible:', nivelActual.level);
-      navigation.navigate('GameScreen', {
-        nivel: nivelActual,
-        onGameEnd: handleGameResult,
-      });
-    } else {
-      Alert.alert('¡No hay niveles disponibles!', 'Has completado todos los niveles o hay un error al cargar el próximo nivel.');
+    // Si no hay vidas, mostramos una alerta y no navegamos
+    if (vidas === 0) {
+      Alert.alert(
+        'Vidas agotadas',
+        'No te quedan vidas para jugar. Puedes comprar más en la tienda o esperar a que se recarguen.'
+      );
+      return;
     }
+
+    if (!nextLevelToPlay) {
+      Alert.alert('Error', 'El nivel no está disponible. Por favor, espera a que se carguen los datos.');
+      return;
+    }
+  
+    console.log('Home: Navegando al último nivel disponible:', nextLevelToPlay.IdNivel);
+    navigation.navigate('Game', {
+      nivel: nextLevelToPlay,
+      onGameEnd: handleGameResult,
+    });
   };
 
   function capitalize(color: string) {
     return color.charAt(0).toUpperCase() + color.slice(1);
+  }
+
+  if (isLoading) {
+    return (
+      <View style={[styles.fullScreenContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#7a4ef2" />
+        <Text style={{ color: '#fff', marginTop: 10 }}>Cargando datos...</Text>
+      </View>
+    );
   }
 
   return (
@@ -289,8 +311,14 @@ export default function Home() {
           </View>
         </View>
       </ScrollView>
-      <TouchableOpacity style={styles.playButton} onPress={handlePlayButton}>
-        <Text style={styles.playText}>Jugar</Text>
+      <TouchableOpacity 
+        style={[styles.playButton, vidas === 0 && styles.disabledButton]} 
+        onPress={handlePlayButton} 
+        disabled={vidas === 0 || isLoading}
+      >
+        <Text style={styles.playText}>
+          {isLoading ? 'Cargando...' : vidas === 0 ? 'Sin vidas' : 'Jugar'}
+        </Text>
       </TouchableOpacity>
       <Footer />
     </View>
@@ -446,5 +474,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 18,
+  },
+  disabledButton: {
+    backgroundColor: '#555',
   },
 });

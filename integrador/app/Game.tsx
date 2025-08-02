@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, StyleSheet, Image, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { NivelXUsuario } from '@/assets/database/type';
 import { useNavigation } from "@react-navigation/native";
-import { obtenerPalabraLongitud, insertNivelXUsuario } from '@/assets/database/query';
+import { obtenerPalabraLongitud, insertNivelXUsuario, getVidas } from '@/assets/database/query';
 import { useUser } from '@/context/UserContext';
 import type { RootStackParamList } from './LevelsScreen';
 
@@ -12,6 +12,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Game'>;
 export default function Game({ route, navigation }: Props) {
   const [nivelConPalabra, setNivelConPalabra] = useState<NivelXUsuario | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [vidas, setVidas] = useState<number>(0);
   const { userId } = useUser();
   const { nivel, onGameEnd } = route.params;
 
@@ -25,16 +26,17 @@ export default function Game({ route, navigation }: Props) {
           navigation.goBack();
           return;
         }
+
+        const vidasData = await getVidas(userId);
+        setVidas(vidasData.length > 0 ? vidasData[0].cantidad ?? 0 : 0);
         
         if (!tempNivel.palabra) {
           console.log(`Game: Buscando palabra para el nivel ${tempNivel.IdNivel}...`);
-          // Calculamos la longitud de la palabra basándonos en el IdNivel
           const longitudPalabra = 2 + Math.ceil(tempNivel.IdNivel / 5);
           const palabraObtenida = await obtenerPalabraLongitud(longitudPalabra);
           
           if (palabraObtenida) {
             tempNivel.palabra = palabraObtenida;
-            // Intentamos insertar el nivel en la DB
             const nivelInsertado = await insertNivelXUsuario(userId, tempNivel.IdNivel, palabraObtenida);
             if (nivelInsertado) {
               tempNivel = nivelInsertado;
@@ -59,6 +61,15 @@ export default function Game({ route, navigation }: Props) {
   }, [nivel, navigation, userId]);
 
   const handlePlayGame = () => {
+    // Si no hay vidas, mostramos una alerta y no navegamos
+    if (vidas === 0) {
+      Alert.alert(
+        'Vidas agotadas',
+        'No te quedan vidas para jugar. Puedes comprar más en la tienda o esperar a que se recarguen.'
+      );
+      return;
+    }
+
     console.log('Game: Navegando a GameScreen para Nivel', nivel.IdNivel);
     if (nivelConPalabra) {
       navigation.navigate('GameScreen', {
@@ -109,7 +120,7 @@ export default function Game({ route, navigation }: Props) {
           
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Intentos :</Text>
-            <Text style={styles.infoTextValue}>{nivelConPalabra.intento || 5}</Text>
+            <Text style={styles.infoTextValue}>{nivelConPalabra.intento || 0}</Text>
           </View>
           <View style={styles.infoContainer}>
             <Text style={styles.infoTextLabel}>Tiempo:</Text>
@@ -123,7 +134,11 @@ export default function Game({ route, navigation }: Props) {
       </View>
 
       <View style={styles.buttonGroup}>
-        <TouchableOpacity style={styles.playButton} onPress={handlePlayGame}>
+        <TouchableOpacity 
+          style={[styles.playButton, vidas === 0 && styles.disabledButton]} 
+          onPress={handlePlayGame} 
+          disabled={vidas === 0 || isLoading}
+        >
           <Text style={styles.playButtonText}>Jugar</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.backButton} onPress={volverSinCambios}>
@@ -228,5 +243,8 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     marginTop: 20,
     fontSize: 18,
+  },
+  disabledButton: {
+    backgroundColor: '#555',
   },
 });
