@@ -2,7 +2,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 
 let dbInstance: IDBPDatabase | null = null;
 const DB_NAME = 'AppDB';
-const DB_VERSION = 26; 
+const DB_VERSION = 28; 
 
 export const setupIndexedDB = async (): Promise<void> => {
   console.log('Inicializando BD...');
@@ -43,17 +43,11 @@ export const setupIndexedDB = async (): Promise<void> => {
         const palabrasStore = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
         palabrasStore.createIndex('palabra', 'palabra', { unique: true });
       }
-
-      if (oldVersion < 9 && newVersion >= 9 && database.objectStoreNames.contains('NivelXUsuario')) {
-        console.log('DB Upgrade: Adding/Recreating unique index for NivelXUsuario (Version 9+ upgrade path)');
-        const nivelXUsuarioStore = transaction.objectStore('NivelXUsuario');
-        if (nivelXUsuarioStore.indexNames.contains('IdUsuario_IdNivel')) {
-          nivelXUsuarioStore.deleteIndex('IdUsuario_IdNivel');
-        }
-        nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
-      }
     }
   });
+
+  // Insertar datos de prueba si las tablas están vacías
+  const tx = dbInstance.transaction(['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'], 'readwrite');
 
   const insertIfEmpty = async (storeName: string, defaultItems: any[]) => {
     if (!dbInstance) throw new Error("DB no inicializada.");
@@ -64,18 +58,25 @@ export const setupIndexedDB = async (): Promise<void> => {
       console.log(`Seeding initial data into ${storeName}`);
       for (const item of defaultItems) {
         try {
+          if (storeName === 'Palabras' && item.palabra) {
+            item.palabra = item.palabra.normalize('NFC');
+          }
           await store.add(item);
         } catch (e: any) {
           console.warn(`Could not add item to ${storeName}:`, item, e.name, e.message);
           if (e.name === 'ConstraintError') {
-            console.warn(`Likely duplicate key for ${storeName}:`, item);
+            console.warn(`Likely duplicate key for ${storeName}:`, item.palabra);
           }
         }
       }
       await tx.done;
     } else {
       console.log(`${storeName} already has ${count} items. Skipping seeding.`);
-      try { tx.abort(); } catch(e) {};
+      try { 
+        tx.abort(); 
+      } catch (e) {
+        console.log(e);
+      }
     }
   };
 
@@ -102,7 +103,7 @@ export const setupIndexedDB = async (): Promise<void> => {
         { cantidad: 3, IdUsuario: 2 }
       ],
       Palabras: [
-        { palabra: 'ejemplo' }, { palabra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' },
+        { palabra: 'ejemplo' }, { palasbra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' },
         { palabra: 'luz' }, { palabra: 'ojo' }, { palabra: 'voz' }, { palabra: 'te' }, { palabra: 'pan' },
         { palabra: 'rio' }, { palabra: 'sal' }, { palabra: 'casa' }, { palabra: 'luna' }, { palabra: 'flor' },
         { palabra: 'toro' }, { palabra: 'piel' }, { palabra: 'cine' }, { palabra: 'tren' }, { palabra: 'mesa' },
@@ -114,7 +115,14 @@ export const setupIndexedDB = async (): Promise<void> => {
         { palabra: 'guitarra' }, { palabra: 'espejo' }, { palabra: 'cuchara' }, { palabra: 'zapato' }, { palabra: 'camisa' },
         { palabra: 'telefono' }, { palabra: 'computadora' }, { palabra: 'bicicleta' }, { palabra: 'pelota' }, { palabra: 'juego' },
         { palabra: 'hermoso' }, { palabra: 'valiente' }, { palabra: 'antiguo' }, { palabra: 'aprender' }, { palabra: 'creativo' },
-        { palabra: 'resolver' }, { palabra: 'invierno' }, { palabra: 'mariposa' },
+        { palabra: 'resolver' }, { palabra: 'invierno' }, { palabra: 'mariposa' }, { palabra: 'compás' }, { palabra: 'jamás' },
+        { palabra: 'mamá' }, { palabra: 'sofá' }, { palabra: 'café' }, { palabra: 'ratón' }, { palabra: 'avión' }, { palabra: 'débil' },
+        { palabra: 'cantó' }, { palabra: 'lápiz' }, { palabra: 'árbol' }, { palabra: 'bebé' }, { palabra: 'menú' },
+        { palabra: 'allá' }, { palabra: 'inglés' }, { palabra: 'francés' }, { palabra: 'cortó' }, { palabra: 'bastó' },
+        { palabra: 'cóndor' }, { palabra: 'papá' }, { palabra: 'régimen' }, { palabra: 'fútbol' }, 
+        { palabra: 'dólar' }, { palabra: 'túnel' }, { palabra: 'límite' }, { palabra: 'éxito' }, { palabra: 'héroe' }, { palabra: 'razón' },
+        { palabra: 'césped' }, { palabra: 'ángel' }, { palabra: 'tórax' }, { palabra: 'táctil' }, { palabra: 'difícil' }, { palabra: 'fácil' },
+        { palabra: 'pésimo' }, { palabra: 'público' }, { palabra: 'técnico' }, { palabra: 'biología' }, { palabra: 'lámpara' },
       ]
     };
     for (const storeName in defaultData) {

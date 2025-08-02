@@ -68,7 +68,7 @@ export default function Home() {
       });
 
       if (!allRelevantLevelsMap.has(1)) {
-        const palabraInicial = await obtenerPalabraLongitud(3);
+        const palabraInicial = await obtenerPalabraLongitud(3, userId!);
         if (palabraInicial) {
           const nuevoNivel = await insertNivelXUsuario(userId, 1, palabraInicial);
           if (nuevoNivel) {
@@ -466,9 +466,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
     position: 'absolute',
-    bottom: 85,
+    bottom: 50,
     left: 15,
-    right: 15,
+    right: 30,
   },
   playText: {
     color: '#fff',

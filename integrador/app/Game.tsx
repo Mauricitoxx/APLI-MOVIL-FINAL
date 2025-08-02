@@ -33,7 +33,7 @@ export default function Game({ route, navigation }: Props) {
         if (!tempNivel.palabra) {
           console.log(`Game: Buscando palabra para el nivel ${tempNivel.IdNivel}...`);
           const longitudPalabra = 2 + Math.ceil(tempNivel.IdNivel / 5);
-          const palabraObtenida = await obtenerPalabraLongitud(longitudPalabra);
+          const palabraObtenida = await obtenerPalabraLongitud(longitudPalabra, userId!);
           
           if (palabraObtenida) {
             tempNivel.palabra = palabraObtenida;
@@ -111,7 +111,7 @@ export default function Game({ route, navigation }: Props) {
     <View style={styles.container}>
       <View style={styles.card}>
         <Image 
-          source={require('../assets/images/statue_of_liberty.jpg')}
+          source={require('../images/words.jpg')}
           style={styles.cardBackgroundImage}
           resizeMode="cover" 
         />
@@ -152,31 +152,29 @@ export default function Game({ route, navigation }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#303030',
+    backgroundColor: '#1e1e1e',
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
   },
   card: {
-    backgroundColor: '#1E1E1E',
-    borderRadius: 15,
-    padding: 20,
+    backgroundColor: '#2c2c2c',
+    borderRadius: 20,
+    padding: 25,
     width: '90%',
     maxWidth: 400,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.3,
     shadowRadius: 10,
-    elevation: 10,
+    elevation: 8,
     marginBottom: 30,
     overflow: 'hidden',
   },
   cardBackgroundImage: {
-    position: 'absolute',
-    width: '100%',
-    height: '100%',
-    opacity: 0.15,
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.11,
   },
   cardContent: {
     width: '100%',
@@ -188,19 +186,20 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: 'bold',
     color: '#FFFFFF',
-    marginBottom: 10,
+    marginBottom: 20,
     textAlign: 'center',
   },
   infoContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    width: '100%',
+    width: '90%',
     alignItems: 'baseline',
     marginBottom: 8,
+    marginVertical: 6,
   },
   infoTextLabel: {
     fontSize: 18,
-    color: '#B0B0B0',
+    color: '#b0b0b0ff',
     fontWeight: '500',
     flex: 1,
     textAlign: 'left',
