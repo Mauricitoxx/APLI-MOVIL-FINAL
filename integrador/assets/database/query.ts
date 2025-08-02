@@ -2,19 +2,28 @@ import { getDB } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
 export const insertUsuario = async (usuario: Usuario): Promise<number> => {
-  const db = await getDB();
-  return db.add('Usuario', usuario);
+  const db = await getDB();
+  return db.add('Usuario', usuario);
 };
 
 //Seleccion de Palabras
-export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
+export const obtenerPalabraLongitud = async (longitud: number, idUsuario: number | null): Promise<string | null> => {
   const db = await getDB();
-  const tx = db.transaction('Palabras', 'readonly');
-  const store = tx.objectStore('Palabras');
+  const tx = db.transaction(['Palabras', 'NivelXUsuario'], 'readonly');
+  const storePalabras = tx.objectStore('Palabras');
+  const storeNiveles = tx.objectStore('NivelXUsuario');
 
-  const todasLasPalabras = await store.getAll();
+  const [todasLasPalabras, nivelesDelUsuario] = await Promise.all([
+    storePalabras.getAll(),
+    idUsuario !== null ? storeNiveles.index('IdUsuario').getAll(idUsuario) : [],
+  ]);
+  await tx.done;
 
-  const palabrasFiltradas = todasLasPalabras.filter(p => p.palabra.length === longitud);
+  const palabrasUsadas = new Set(nivelesDelUsuario.map(n => n.palabra));
+
+  console.log(`query.ts: Buscando palabra con longitud: ${longitud}`);
+  const palabrasFiltradas = todasLasPalabras
+    .filter(p => p.palabra.length === longitud && !palabrasUsadas.has(p.palabra));
 
   if (palabrasFiltradas.length === 0) return null;
 
@@ -24,16 +33,16 @@ export const obtenerPalabraLongitud = async (longitud: number): Promise<string |
 
 // Login y Registrar
 export const validarUsuario = async (email: string, password: string): Promise<Usuario | null> => {
-  const db = await getDB();
-  const tx = db.transaction('Usuario', 'readonly');
-  const store = tx.objectStore('Usuario');
-  const allUsers = await store.getAll();
+  const db = await getDB();
+  const tx = db.transaction('Usuario', 'readonly');
+  const store = tx.objectStore('Usuario');
+  const allUsers = await store.getAll();
 
-  const user = allUsers.find(
-    user => user.mail === email && user.contrasena === password
-  );
+  const user = allUsers.find(
+    user => user.mail === email && user.contrasena === password
+  );
 
-  return user ?? null;
+  return user ?? null;
 };
 
 export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
@@ -59,7 +68,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
     return { ok: false, error: 'El nombre de usuario ya está en uso' };
   }
 
-  const palabraInicial = await obtenerPalabraLongitud(3);
+  const palabraInicial = await obtenerPalabraLongitud(3, null);
   if (!palabraInicial) {
     return { ok: false, error: 'No hay palabras con esa longitud en la base de datos' };
   }
@@ -98,7 +107,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
 
     await nivelXUsuarioStore.add({
       puntaje: 0,
-      tiempo: 0,
+      tiempo: 0, 
       palabra: palabraInicial,
       intento: 0,
       recompensa_intento: '0',
@@ -175,31 +184,46 @@ export const otorgarVida = async () => {
 
 //Niveles y Juego
 //Crear un nuevo nivel por usuario
-export const insertNivelXUsuario = async (idUsuario: number) => {
+export const insertNivelXUsuario = async (idUsuario: number, IdNivel: number, palabra: string): Promise<NivelXUsuario | null> => {
   const db = await getDB();
-  const nivelesUsuario = await db.getAllFromIndex('NivelXUsuario', 'IdUsuario', idUsuario);
-  const maxNivel = nivelesUsuario.length > 0
-    ? Math.max(...nivelesUsuario.map(n => n.IdNivel))
-    : 0;
-  const nuevoNivel = maxNivel + 1;
+  const tx = db.transaction('NivelXUsuario', 'readwrite');
+  const store = tx.objectStore('NivelXUsuario');
 
-  const longitudPalabra = 3 + Math.floor(nuevoNivel / 5);
+  try {
+    const existingRecord = await store.index('IdUsuario_IdNivel').get([idUsuario, IdNivel]);
+    if (existingRecord) {
+      console.log(`query.ts: insertNivelXUsuario - NivelXUsuario (IdUsuario: ${idUsuario}, IdNivel: ${IdNivel}) ya existe. Retornando existente.`);
+      await tx.done;
+      return existingRecord;
+    }
+  } catch (error: any) {
+    console.error(`query.ts: Error al buscar nivel existente antes de insertar (búsqueda por índice):`, error.name, error.message);
+    await tx.done;
+    return null;
+  }
 
-  const palabra = await obtenerPalabraLongitud(longitudPalabra);
-
-  const nuevoRegistro: NivelXUsuario = {
+  const nuevoRegistro: Omit<NivelXUsuario, 'id'> = {
     puntaje: 0,
     tiempo: 0,
     palabra,
     intento: 0,
-    recompensa_intento: '',
+    recompensa_intento: '0',
     IdUsuario: idUsuario,
-    IdNivel: nuevoNivel,
+    IdNivel: IdNivel,
   };
 
-  const idGenerado = await db.add('NivelXUsuario', nuevoRegistro);
-  return {...nuevoRegistro, id: idGenerado as number}
-}
+  try {
+    const idGenerado = await store.add(nuevoRegistro);
+    const insertedRecord = { ...nuevoRegistro, id: idGenerado as number };
+    await tx.done;
+    console.log(`query.ts: insertNivelXUsuario - Nuevo NivelXUsuario (IdNivel: ${IdNivel}) creado para usuario ${idUsuario}. ID de IndexedDB: ${idGenerado}`);
+    return insertedRecord;
+  } catch (error: any) {
+    console.error(`query.ts: Error al añadir nuevo NivelXUsuario ${IdNivel} para usuario ${idUsuario} (operación de adición):`, error.name, error.message, error);
+    try { tx.abort(); } catch (abortError) { console.error("Error al intentar abortar transacción:", abortError); }
+    return null;
+  }
+};
 
 //Modificar vidas cuando el jugador pierde
 export const restarVida = async (idUsuario: number) => {
@@ -248,8 +272,14 @@ export const cargarDatosNivel = async (idUsuario: number, idNivel: number, punta
       return;
     }
 
-    nivel.puntaje = puntaje;
+    // Sobrescribe el puntaje si es un nuevo récord
+    if (puntaje > nivel.puntaje) {
+      nivel.puntaje = puntaje;
+    }
+    
+    // Sobrescribe el tiempo en cada jugada
     nivel.tiempo = tiempo;
+
     nivel.intento = nivel.intento + 1;
 
     await store.put(nivel);
@@ -446,4 +476,3 @@ export const comprarHerramienta = async (idUsuario: number, tipo: 'pasa' | 'ayud
   await tx.done;
   return { ok: true };
 };
-

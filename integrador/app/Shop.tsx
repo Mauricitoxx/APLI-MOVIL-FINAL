@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import Footer from '@/components/Footer'; 
+
 import { useUser } from '@/context/UserContext';
 import {
   getUsuarioPorId,
@@ -149,6 +151,7 @@ export default function Shop() {
         <Text style={styles.itemText}>Vida Extra - $150</Text>
       </TouchableOpacity>
 
+      <Footer />
       <TouchableOpacity
         activeOpacity={0.7}
         style={styles.itemBox}
@@ -198,24 +201,6 @@ export default function Shop() {
         </View>
       </Modal>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.footerButton}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Feather name="home" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="shopping-cart" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="play" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="user" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }

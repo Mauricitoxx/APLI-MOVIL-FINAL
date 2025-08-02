@@ -8,6 +8,7 @@ import Shop from './Shop';
 import { UserProvider } from '@/context/UserContext';
 import User from './User';
 import Game from './Game';
+import LevelsScreen from './Levels';
 import GameScreen from './GameScreen';
 import { RootStackParamList } from '@/types/navigation';
 
@@ -24,6 +25,8 @@ export default function App() {
         <Stack.Screen name="Shop" component={Shop} />
         <Stack.Screen name="User" component={User} />
         <Stack.Screen name="Game" component={Game} />
+        <Stack.Screen name="Levels" component={LevelsScreen} />
+        
         <Stack.Screen name="GameScreen" component={GameScreen} />
       </Stack.Navigator>
     </UserProvider>

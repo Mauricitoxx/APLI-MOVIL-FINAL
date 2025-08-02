@@ -2,17 +2,19 @@ import { getHerramienta } from '@/assets/database/query';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useUser } from '@/context/UserContext';
-import { setupIndexedDB } from '@/assets/database/db';
+
+// Ya no es necesario importar ni llamar a setupDatabase() aquí.
+// La base de datos ya está inicializada en RootLayout.tsx.
 
 export default function ToolSelector() {
   const [selected, setSelected] = useState<'pasa' | 'ayuda'>('pasa');
   const { userId } = useUser();
   const [loading, setLoading] = useState(true);
 
-  const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }> ({
+  const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }>({
     pasa: 0,
     ayuda: 0,
-  })
+  });
 
   const options = {
     pasa: {
@@ -25,19 +27,26 @@ export default function ToolSelector() {
 
   useEffect(() => {
     const cargarDatos = async () => {
-      if (!userId) return;
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
 
-      await setupIndexedDB();
+      try {
+        // La base de datos ya está lista, solo obtenemos los datos
+        const herramientas = await getHerramienta(userId);
+        const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
 
-      const herramientas = await getHerramienta(userId);
-      const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
+        herramientas.forEach(h => {
+          contadores[h.tipo] = h.cantidad;
+        });
 
-      herramientas.forEach(h => {
-        contadores[h.tipo] = h.cantidad;
-      });
-
-      setCantidadHerramientas(contadores);
-      setLoading(false);
+        setCantidadHerramientas(contadores);
+      } catch (error) {
+        console.error("Error al cargar las herramientas del usuario:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     cargarDatos();
@@ -86,9 +95,9 @@ export default function ToolSelector() {
         </View>
 
         <View style={styles.descriptionBox}>
-            <Text style={styles.jumpText}>
+          <Text style={styles.jumpText}>
             {options[selected].description}
-            </Text>
+          </Text>
         </View>
       </View>
 
@@ -162,7 +171,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-function fetchTools() {
-  throw new Error('Function not implemented.');
-}
-
