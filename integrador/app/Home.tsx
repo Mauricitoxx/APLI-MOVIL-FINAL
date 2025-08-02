@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -68,7 +68,7 @@ export default function Home() {
       });
 
       if (!allRelevantLevelsMap.has(1)) {
-        const palabraInicial = await obtenerPalabraLongitud(3);
+        const palabraInicial = await obtenerPalabraLongitud(3, userId);
         if (palabraInicial) {
           const nuevoNivel = await insertNivelXUsuario(userId, 1, palabraInicial);
           if (nuevoNivel) {
@@ -129,7 +129,6 @@ export default function Home() {
       }
 
       setNivelesParaListLevelsHome(levelsToShow);
-      // Establecemos el siguiente nivel a jugar
       const nextLevel = levelsToShow.find(n => n.IdNivel === nivelActualAJugar);
       setNextLevelToPlay(nextLevel || null);
       
@@ -142,6 +141,12 @@ export default function Home() {
     }
   }, [userId]);
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchDataAndPrepareLevels();
+    }, [fetchDataAndPrepareLevels])
+  );
+  
   const handleGameResult = useCallback(async (nivelActualizado: NivelXUsuario | null) => {
     console.log('Home: handleGameResult received:', nivelActualizado);
     if (!userId) {
@@ -201,10 +206,7 @@ export default function Home() {
       fetchDataAndPrepareLevels();
     }
   }, [userId, fetchDataAndPrepareLevels]);
-
-  useFocusEffect(fetchDataAndPrepareLevels);
   
-  // Función para manejar la navegación al último nivel disponible
   const handlePlayButton = () => {
     if (!nextLevelToPlay) {
       Alert.alert('Error', 'El nivel no está disponible. Por favor, espera a que se carguen los datos.');

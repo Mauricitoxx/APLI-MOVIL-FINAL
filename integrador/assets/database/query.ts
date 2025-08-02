@@ -2,21 +2,28 @@ import { getDB } from './db';
 import type { Usuario, Nivel, NivelXUsuario, Herramienta, Vida, Palabras } from './type';
 
 export const insertUsuario = async (usuario: Usuario): Promise<number> => {
-  const db = await getDB();
-  return db.add('Usuario', usuario);
+  const db = await getDB();
+  return db.add('Usuario', usuario);
 };
 
 //Seleccion de Palabras
-export const obtenerPalabraLongitud = async (longitud: number): Promise<string | null> => {
+export const obtenerPalabraLongitud = async (longitud: number, idUsuario: number | null): Promise<string | null> => {
   const db = await getDB();
-  const tx = db.transaction('Palabras', 'readonly');
-  const store = tx.objectStore('Palabras');
+  const tx = db.transaction(['Palabras', 'NivelXUsuario'], 'readonly');
+  const storePalabras = tx.objectStore('Palabras');
+  const storeNiveles = tx.objectStore('NivelXUsuario');
 
-  const todasLasPalabras = await store.getAll();
+  const [todasLasPalabras, nivelesDelUsuario] = await Promise.all([
+    storePalabras.getAll(),
+    idUsuario !== null ? storeNiveles.index('IdUsuario').getAll(idUsuario) : [],
+  ]);
   await tx.done;
 
+  const palabrasUsadas = new Set(nivelesDelUsuario.map(n => n.palabra));
+
   console.log(`query.ts: Buscando palabra con longitud: ${longitud}`);
-  const palabrasFiltradas = todasLasPalabras.filter(p => p.palabra.length === longitud);
+  const palabrasFiltradas = todasLasPalabras
+    .filter(p => p.palabra.length === longitud && !palabrasUsadas.has(p.palabra));
 
   if (palabrasFiltradas.length === 0) return null;
 
@@ -26,16 +33,16 @@ export const obtenerPalabraLongitud = async (longitud: number): Promise<string |
 
 // Login y Registrar
 export const validarUsuario = async (email: string, password: string): Promise<Usuario | null> => {
-  const db = await getDB();
-  const tx = db.transaction('Usuario', 'readonly');
-  const store = tx.objectStore('Usuario');
-  const allUsers = await store.getAll();
+  const db = await getDB();
+  const tx = db.transaction('Usuario', 'readonly');
+  const store = tx.objectStore('Usuario');
+  const allUsers = await store.getAll();
 
-  const user = allUsers.find(
-    user => user.mail === email && user.contrasena === password
-  );
+  const user = allUsers.find(
+    user => user.mail === email && user.contrasena === password
+  );
 
-  return user ?? null;
+  return user ?? null;
 };
 
 export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promise<{ ok: boolean; error?: string }> => {
@@ -61,7 +68,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
     return { ok: false, error: 'El nombre de usuario ya está en uso' };
   }
 
-  const palabraInicial = await obtenerPalabraLongitud(3);
+  const palabraInicial = await obtenerPalabraLongitud(3, null);
   if (!palabraInicial) {
     return { ok: false, error: 'No hay palabras con esa longitud en la base de datos' };
   }
