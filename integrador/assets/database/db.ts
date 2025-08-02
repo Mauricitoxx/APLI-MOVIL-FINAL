@@ -108,7 +108,15 @@ export const setupIndexedDB = async (): Promise<void> => {
         { palabra: 'guitarra' }, { palabra: 'espejo' }, { palabra: 'cuchara' }, { palabra: 'zapato' }, { palabra: 'camisa' },
         { palabra: 'telefono' }, { palabra: 'computadora' }, { palabra: 'bicicleta' }, { palabra: 'pelota' }, { palabra: 'juego' },
         { palabra: 'hermoso' }, { palabra: 'valiente' }, { palabra: 'antiguo' }, { palabra: 'aprender' }, { palabra: 'creativo' },
-        { palabra: 'resolver' }, { palabra: 'invierno' }, { palabra: 'mariposa' },
+        { palabra: 'resolver' }, { palabra: 'invierno' }, { palabra: 'mariposa' }, { palabra: 'compás' }, { palabra: 'jamás' },
+        { palabra: 'mamá' }, { palabra: 'sofá' }, { palabra: 'café' }, { palabra: 'ratón' }, { palabra: 'avión' }, { palabra: 'débil' },
+        { palabra: 'cantó' }, { palabra: 'lápiz' }, { palabra: 'árbol' }, { palabra: 'bebé' }, { palabra: 'menú' },
+        { palabra: 'allá' }, { palabra: 'inglés' }, { palabra: 'francés' }, { palabra: 'cortó' }, { palabra: 'bastó' },
+        { palabra: 'cóndor' }, { palabra: 'papá' }, { palabra: 'régimen' }, { palabra: 'fútbol' }, 
+        { palabra: 'dólar' }, { palabra: 'túnel' }, { palabra: 'límite' }, { palabra: 'éxito' }, { palabra: 'héroe' }, { palabra: 'razón' },
+        { palabra: 'césped' }, { palabra: 'ángel' }, { palabra: 'tórax' }, { palabra: 'táctil' }, { palabra: 'difícil' }, { palabra: 'fácil' },
+        { palabra: 'pésimo' }, { palabra: 'público' }, { palabra: 'técnico' }, { palabra: 'biología' }, { palabra: 'lámpara' },
+      
       ]
     };
     for (const storeName in defaultData) {

@@ -6,9 +6,9 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../Game';
 
-const { width } = Dimensions.get('window');
+//const { width } = Dimensions.get('window');
 const SPACING = 10;
-const ITEM_SIZE_HOME_4_COLUMNS = (width - SPACING * 5) / 4;
+//const ITEM_SIZE_HOME_4_COLUMNS = (width - SPACING * 5) / 4;
 
 interface Props {
   niveles: NivelXUsuario[];
@@ -65,7 +65,7 @@ const ListLevels: React.FC<Props> = ({ niveles, navigation, onGameResult }) => {
       >
         <Text style={styles.title}>Nivel {item.IdNivel}</Text>
         <Text style={styles.infoText}>Puntaje: {item.puntaje}</Text>
-        <Text style={styles.infoText}>Tiempo: {item.tiempo}</Text>
+        <Text style={styles.infoText}>Tiempo: {item.tiempo} seg.</Text>
       </TouchableOpacity>
     );
   };
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   card: {
-    width: ITEM_SIZE_HOME_4_COLUMNS,
+    width: 130,
     height: 100,
     marginRight: SPACING,
     borderRadius: 12,

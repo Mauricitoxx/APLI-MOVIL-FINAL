@@ -159,7 +159,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         if (intentoActual === intentoMax - 1) {
             setTimeout(async () => {
                 setResultadoFinal({ ganado: false });
-                await mostrarModal(`¡Has perdido! La palabra era: ${palabraNivel.toUpperCase()}`);
+                await mostrarModal(`¡Has perdido!`);
                 await cargarDatosNivel(userId!, idNivel, 0, 0);
                 await restarVida(userId!).catch(err => console.error('Error al restar vida:', err));
             }, 100);
