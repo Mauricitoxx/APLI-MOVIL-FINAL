@@ -2,7 +2,7 @@ import { cargarDatosNivel, insertMoneda, restarVida, restarHerramienta, getHerra
 import { useUser } from "@/context/UserContext";
 import { useNavigation } from "expo-router";
 import React, {useEffect, useState} from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions, ScrollView  } from 'react-native';
 
 // Interfaz para las propiedades del componente
 interface Props {
@@ -11,22 +11,21 @@ interface Props {
     onGameEnd: (ganado: boolean, puntos?: number, tiempo?: number) => void;
 }
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
-    // --- Variables de estado y constantes del juego ---
+    
     const idNivel = IdNivel;
-    // Aseguramos que palabraNivel no sea null antes de obtener la longitud
     const longitud = palabraNivel ? palabraNivel.length : 0;
     const intentoMax = 6;
     const [inicioJuego] = useState(Date.now());
     const { userId } = useUser();
     
-    // Estado para la cantidad de herramientas del usuario
     const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }> ({
         pasa: 0,
         ayuda: 0,
     });
     
-    // Estado para bloquear la interacción con las herramientas durante la carga
     const [bloqueado, setBloqueado] = useState(false);
 
     // Ref para el callback de cierre del modal
@@ -345,82 +344,85 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
 
 
     return (
+        
         <View style={styles.container}>
             <Text style={styles.title}>Adivina la palabra</Text>
             <Text style={styles.subtitle}><strong>Considerar que puede haber palabras con tilde en alguna de sus letras</strong></Text>
 
             <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 5 }}>              
-              {palabraNivel.split('').map((letra, i) => (
+            {palabraNivel!.split('').map((letra, i) => (
                 <Text key={i} style={{fontSize: 20, color: letrasReveladas.includes(letra)  || letrasReveladas.length === palabraNivel.length 
-                  ? 'orange'
-                  : '#ccc',
-                  marginHorizontal: 4,
-                }}>
-                  <strong>{letrasReveladas.includes(letra) || letrasReveladas.length === palabraNivel.length
-                            ? letra.toUpperCase()
-                            : ''}
-                  </strong>
-                </Text>
-              ))}
-            </View>
-            
-            {/* Cuadrícula de juego */}
-            {letrasIngresadas.map(renderFila)}
-
-            {/* Botones de herramientas */}
-            <View style={styles.contenedorHerramientas}>
-                <TouchableOpacity onPress={usarAyudaLetra} style={styles.botonHerramienta} disabled={bloqueado}>
-                    <Text style={styles.textoBoton}>Revelar Letra: {cantidadHerraminetas["ayuda"]} </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity onPress={usarPasaPalabra} style={styles.botonHerramienta} disabled={bloqueado}>
-                    <Text style={styles.textoBoton}>Pasar Palabra: {cantidadHerraminetas["pasa"]}</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* Teclado */}
-            <View style={styles.keyboard}>
-                {tecladoFilas.map((fila, filaIndex) => (
-                    <View key={filaIndex} style={styles.keyboardRow}>
-                    {fila.map((letra) => {
-                        const isSpecial = letra === '⌫' || letra === '⏎';
-                        const onPress = letra === '⌫'
-                            ? handleBorrar
-                            : letra === '⏎'
-                                ? handleEnter
-                                : () => handleLetra(letra.toLowerCase());
-
-                        return (
-                        <TouchableOpacity
-                            key={letra}
-                            style={[styles.key, obtenerColorTecla(letra), isSpecial && styles.specialKey]}
-                            onPress={onPress}
-                            disabled={resultadoFinal !== null}
-                        >
-                            <Text style={styles.keyText}>{letra}</Text>
-                        </TouchableOpacity>
-                        );
-                    })}
-                    </View>
+                    ? 'orange'
+                    : '#ccc',
+                    marginHorizontal: 4,
+                    }}>
+                    <strong>{letrasReveladas.includes(letra) || letrasReveladas.length === palabraNivel.length
+                                ? letra.toUpperCase()
+                                : ''}
+                    </strong>
+                    </Text>
                 ))}
-            </View>
-
-            {/* Modal de Resultado */}
-            <Modal transparent animationType="fade" visible={visibleModal} onRequestClose={cerrarModal}>
-                <View style={styles.modalContainer}>
-                    <View style={styles.modalContent}>
-                        <Text style={styles.modalText}>{mensajeModal}</Text>
-                        <TouchableOpacity onPress={cerrarModal} style={styles.modalButton}>
-                            <Text style={styles.modalButtonText}>Aceptar</Text>
-                        </TouchableOpacity>
-                    </View>
                 </View>
-            </Modal>
+                
+                {/* Cuadrícula de juego */}
+                {letrasIngresadas.map(renderFila)}
+
+                {/* Botones de herramientas */}
+                <View style={styles.contenedorHerramientas}>
+                    <TouchableOpacity onPress={usarAyudaLetra} style={styles.botonHerramienta} disabled={bloqueado}>
+                        <Text style={styles.textoBoton}>Revelar Letra: {cantidadHerraminetas["ayuda"]} </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity onPress={usarPasaPalabra} style={styles.botonHerramienta} disabled={bloqueado}>
+                        <Text style={styles.textoBoton}>Pasar Palabra: {cantidadHerraminetas["pasa"]}</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Teclado */}
+                <View style={styles.keyboard}>
+                    {tecladoFilas.map((fila, filaIndex) => (
+                        <View key={filaIndex} style={styles.keyboardRow}>
+                        {fila.map((letra) => {
+                            const isSpecial = letra === '⌫' || letra === '⏎';
+                            const onPress = letra === '⌫'
+                                ? handleBorrar
+                                : letra === '⏎'
+                                    ? handleEnter
+                                    : () => handleLetra(letra.toLowerCase());
+
+                            return (
+                            <TouchableOpacity
+                                key={letra}
+                                style={[styles.key, obtenerColorTecla(letra), isSpecial && styles.specialKey]}
+                                onPress={onPress}
+                                disabled={resultadoFinal !== null}
+                            >
+                                <Text style={styles.keyText}>{letra}</Text>
+                            </TouchableOpacity>
+                            );
+                        })}
+                        </View>
+                    ))}
+                </View>
+
+                {/* Modal de Resultado */}
+                <Modal transparent animationType="fade" visible={visibleModal} onRequestClose={cerrarModal}>
+                    <View style={styles.modalContainer}>
+                        <View style={styles.modalContent}>
+                            <Text style={styles.modalText}>{mensajeModal}</Text>
+                            <TouchableOpacity onPress={cerrarModal} style={styles.modalButton}>
+                                <Text style={styles.modalButtonText}>Aceptar</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </Modal>
         </View>
+        
     );
 }
 
 const styles = StyleSheet.create({
+
     container: {
         flex: 1,
         backgroundColor: '#121213',
@@ -467,7 +469,7 @@ const styles = StyleSheet.create({
         marginVertical: 10,
     },
     botonHerramienta: {
-        backgroundColor: '#00589fff', // Usando rgba(0, 88, 159, 1)
+        backgroundColor: '#00589fff',
         paddingVertical: 10,
         paddingHorizontal: 15,
         borderRadius: 10,
@@ -479,8 +481,8 @@ const styles = StyleSheet.create({
     },
 
     cell: {
-        width: 55,
-        height: 55,
+        width: SCREEN_WIDTH * 0.06,
+        height: SCREEN_WIDTH * 0.06,
         borderWidth: 1,
         margin: 4,
         justifyContent: 'center',
@@ -489,7 +491,7 @@ const styles = StyleSheet.create({
     },
     cellText: { 
         fontWeight: 'bold', 
-        fontSize: 24,
+        fontSize: SCREEN_WIDTH * 0.05,
         color: '#fff',
     },
     cellEmpty: { 
@@ -519,6 +521,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'center',
         marginBottom: 6,
+        flexWrap: 'wrap',
+        maxWidth: '80%',
     },
     key: {
         backgroundColor: '#444',
@@ -526,12 +530,12 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         margin: 4,
         borderRadius: 6,
-        minWidth: 36,
+        minWidth: SCREEN_WIDTH * 0.008,
         aspectRatio:1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    // Estilos para las teclas según su estado
+
     keyCorrect: { 
         backgroundColor: '#5bb652', 
         borderColor: '#5bb652' 
@@ -565,8 +569,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#1e1e1f',
         borderRadius: 12,
         padding: 24,
-        width: '90%',
-        maxWidth: 400,
+        width: Math.min(SCREEN_WIDTH * 0.9, 400),
         alignItems: 'center',
     },
     modalText: {
