@@ -30,7 +30,8 @@ export type RootStackParamList = {
 
 const { width } = Dimensions.get('window');
 const SPACING = 10;
-const ITEM_SIZE_LEVELS_SCREEN = (width - SPACING * 8) / 5;
+const numColumns = 6;
+const ITEM_SIZE_LEVELS_SCREEN = (width - SPACING * (numColumns + 1)) / numColumns;
 const TOTAL_NIVELES = 30;
 
 const getBackgroundColor = (status: 'completed' | 'current' | 'locked') => {
@@ -167,6 +168,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
       <View style={styles.gridContainer}>
         <FlatList
           data={levelsToDisplay}
+          
           renderItem={({ item }) => (
             <LevelTile 
               item={item} 
@@ -175,7 +177,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
             />
           )}
           keyExtractor={(item) => String(item.IdNivel)}
-          numColumns={5}
+          numColumns={numColumns}
           columnWrapperStyle={styles.row}
           showsVerticalScrollIndicator={false}
         />

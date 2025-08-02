@@ -1,145 +1,112 @@
 import { openDB, type IDBPDatabase } from 'idb';
 
 let dbInstance: IDBPDatabase | null = null;
+
 const DB_NAME = 'AppDB';
-const DB_VERSION = 28; 
+const DB_VERSION = 33;
+
 
 export const setupIndexedDB = async (): Promise<void> => {
   console.log('Inicializando BD...');
   if (dbInstance) return;
-
+  
   dbInstance = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(database, oldVersion, newVersion, transaction) {
-      console.log(`DB Upgrade: from ${oldVersion} to ${newVersion}`);
-
+    upgrade(database) {
       if (!database.objectStoreNames.contains('Usuario')) {
         const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
         usuarioStore.createIndex('mail', 'mail', { unique: true });
         usuarioStore.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
         usuarioStore.createIndex('id', 'id', { unique: true });
       }
-
-      if (!database.objectStoreNames.contains('Nivel')) {
+      if (!database.objectStoreNames.contains('Nivel')){
         database.createObjectStore('Nivel', { keyPath: 'id', autoIncrement: true });
       }
-
-      if (!database.objectStoreNames.contains('NivelXUsuario')) {
+      if (!database.objectStoreNames.contains('NivelXUsuario')){
         const nivelXUsuarioStore = database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
         nivelXUsuarioStore.createIndex('IdUsuario', 'IdUsuario');
         nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
       }
-
-      if (!database.objectStoreNames.contains('Herramienta')) {
+      if (!database.objectStoreNames.contains('Herramienta')){
         const herramientaStore = database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
         herramientaStore.createIndex('IdUsuario', 'IdUsuario');
       }
-
-      if (!database.objectStoreNames.contains('Vida')) {
+      if (!database.objectStoreNames.contains('Vida')){
         const vidaStore = database.createObjectStore('Vida', { keyPath: 'id', autoIncrement: true });
         vidaStore.createIndex('IdUsuario', 'IdUsuario');
       }
-
-      if (!database.objectStoreNames.contains('Palabras')) {
+      if (!database.objectStoreNames.contains('Palabras')){
         const palabrasStore = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
         palabrasStore.createIndex('palabra', 'palabra', { unique: true });
       }
     }
   });
-
   // Insertar datos de prueba si las tablas están vacías
-  const tx = dbInstance.transaction(['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'], 'readwrite');
-
+  //const tx = dbInstance.transaction(['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'], 'readwrite');
+  
   const insertIfEmpty = async (storeName: string, defaultItems: any[]) => {
-    if (!dbInstance) throw new Error("DB no inicializada.");
-    const tx = dbInstance.transaction(storeName, 'readwrite');
+    const tx = dbInstance!.transaction(storeName, 'readwrite');
     const store = tx.objectStore(storeName);
     const count = await store.count();
     if (count === 0) {
-      console.log(`Seeding initial data into ${storeName}`);
       for (const item of defaultItems) {
         try {
-          if (storeName === 'Palabras' && item.palabra) {
-            item.palabra = item.palabra.normalize('NFC');
-          }
           await store.add(item);
-        } catch (e: any) {
-          console.warn(`Could not add item to ${storeName}:`, item, e.name, e.message);
-          if (e.name === 'ConstraintError') {
-            console.warn(`Likely duplicate key for ${storeName}:`, item.palabra);
-          }
+        } catch (error) {
+          console.warn(`No se pudo insertar en ${storeName}:`, item, error);
         }
       }
-      await tx.done;
-    } else {
-      console.log(`${storeName} already has ${count} items. Skipping seeding.`);
-      try { 
-        tx.abort(); 
-      } catch (e) {
-        console.log(e);
-      }
     }
+    await tx.done;
   };
 
-  // Insertar datos de prueba si las tablas están vacías
-  try {
-    const defaultData = {
-      Usuario: [
-        { nombre_completo: 'Admin', nombre_usuario: 'admin', mail: 'admin@mail.com', contrasena: 'admin', racha: 0, monedas: 0 },
-        { nombre_completo: 'Test User', nombre_usuario: 'test', mail: 'test@mail.com', contrasena: '1234', racha: 0, monedas: 0 }
-      ],
-      Nivel: [{ recompensa: 100 }, { recompensa: 200 }],
-      NivelXUsuario: [
-        { puntaje: 10, tiempo: 60, palabra: 'sol', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 },
-        { puntaje: 80, tiempo: 20, palabra: 'mar', intento: 1, recompensa_intento: '30', IdUsuario: 2, IdNivel: 2 }
-      ],
-      Herramienta: [
-        { tipo: 'pasa', cantidad: 0, IdUsuario: 1 },
-        { tipo: 'ayuda', cantidad: 0, IdUsuario: 1 },
-        { tipo: 'pasa', cantidad: 3, IdUsuario: 2 },
-        { tipo: 'ayuda', cantidad: 0, IdUsuario: 2 }
-      ],
-      Vida: [
-        { cantidad: 5, IdUsuario: 1 },
-        { cantidad: 3, IdUsuario: 2 }
-      ],
-      Palabras: [
-        { palabra: 'ejemplo' }, { palasbra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' },
-        { palabra: 'luz' }, { palabra: 'ojo' }, { palabra: 'voz' }, { palabra: 'te' }, { palabra: 'pan' },
-        { palabra: 'rio' }, { palabra: 'sal' }, { palabra: 'casa' }, { palabra: 'luna' }, { palabra: 'flor' },
-        { palabra: 'toro' }, { palabra: 'piel' }, { palabra: 'cine' }, { palabra: 'tren' }, { palabra: 'mesa' },
-        { palabra: 'vino' }, { palabra: 'cielo' }, { palabra: 'perro' }, { palabra: 'planta' }, { palabra: 'nube' },
-        { palabra: 'sueño' }, { palabra: 'papel' }, { palabra: 'reloj' }, { palabra: 'playa' }, { palabra: 'viento' },
-        { palabra: 'amigo' }, { palabra: 'bosque' }, { palabra: 'calor' }, { palabra: 'camino' }, { palabra: 'tierra' },
-        { palabra: 'mirar' }, { palabra: 'mundo' }, { palabra: 'comida' }, { palabra: 'musica' }, { palabra: 'banana' },
-        { palabra: 'arboles' }, { palabra: 'abanico' }, { palabra: 'caracol' }, { palabra: 'ventana' }, { palabra: 'maleta' },
-        { palabra: 'guitarra' }, { palabra: 'espejo' }, { palabra: 'cuchara' }, { palabra: 'zapato' }, { palabra: 'camisa' },
-        { palabra: 'telefono' }, { palabra: 'computadora' }, { palabra: 'bicicleta' }, { palabra: 'pelota' }, { palabra: 'juego' },
-        { palabra: 'hermoso' }, { palabra: 'valiente' }, { palabra: 'antiguo' }, { palabra: 'aprender' }, { palabra: 'creativo' },
-        { palabra: 'resolver' }, { palabra: 'invierno' }, { palabra: 'mariposa' }, { palabra: 'compás' }, { palabra: 'jamás' },
-        { palabra: 'mamá' }, { palabra: 'sofá' }, { palabra: 'café' }, { palabra: 'ratón' }, { palabra: 'avión' }, { palabra: 'débil' },
-        { palabra: 'cantó' }, { palabra: 'lápiz' }, { palabra: 'árbol' }, { palabra: 'bebé' }, { palabra: 'menú' },
-        { palabra: 'allá' }, { palabra: 'inglés' }, { palabra: 'francés' }, { palabra: 'cortó' }, { palabra: 'bastó' },
-        { palabra: 'cóndor' }, { palabra: 'papá' }, { palabra: 'régimen' }, { palabra: 'fútbol' }, 
-        { palabra: 'dólar' }, { palabra: 'túnel' }, { palabra: 'límite' }, { palabra: 'éxito' }, { palabra: 'héroe' }, { palabra: 'razón' },
-        { palabra: 'césped' }, { palabra: 'ángel' }, { palabra: 'tórax' }, { palabra: 'táctil' }, { palabra: 'difícil' }, { palabra: 'fácil' },
-        { palabra: 'pésimo' }, { palabra: 'público' }, { palabra: 'técnico' }, { palabra: 'biología' }, { palabra: 'lámpara' },
-      ]
-    };
-    for (const storeName in defaultData) {
-      await insertIfEmpty(storeName, defaultData[storeName]);
-    }
-    console.log("Initial data seeding complete.");
-  } catch (error) {
-    console.error("Error during initial data seeding:", error);
-  }
+  await insertIfEmpty('Usuario', [
+    { nombre_completo: 'Admin', nombre_usuario: 'admin', mail: 'admin@mail.com', contrasena: 'admin', racha: 0, monedas: 0 },
+    { nombre_completo: 'Test User', nombre_usuario: 'test', mail: 'test@mail.com', contrasena: '1234', racha: 0, monedas: 0 }
+  ]);
+
+  await insertIfEmpty('Nivel', [{ recompensa: 100 }, { recompensa: 200 }]);
+
+  await insertIfEmpty('NivelXUsuario', [
+    { puntaje: 10, tiempo: 60, palabra: 'sol', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 },
+    { puntaje: 80, tiempo: 20, palabra: 'mar', intento: 1, recompensa_intento: '30', IdUsuario: 2, IdNivel: 2 }
+  ]);
+  
+  await insertIfEmpty('Herramienta', [
+    { tipo: 'pasa', cantidad: 0, IdUsuario: 1 },
+    { tipo: 'ayuda', cantidad: 0, IdUsuario: 1 },
+    { tipo: 'pasa', cantidad: 3, IdUsuario: 2 },
+    { tipo: 'ayuda', cantidad: 0, IdUsuario: 2 }
+  ]);
+
+  await insertIfEmpty('Vida', [
+    { cantidad: 5, IdUsuario: 1 }, 
+    { cantidad: 1, IdUsuario: 2 }
+  ]);
+
+  const palabras = [
+    'ejemplo', 'prueba', 'sol', 'mar', 'pez', 'luz', 'ojo', 'voz', 'te', 'pan', 'rio', 'sal',
+    'casa', 'luna', 'flor', 'toro', 'piel', 'cine', 'tren', 'mesa', 'vino', 'cielo', 'perro',
+    'planta', 'nube', 'sueño', 'papel', 'reloj', 'playa', 'viento', 'amigo', 'bosque', 'calor',
+    'camino', 'tierra', 'mirar', 'mundo', 'comida', 'musica', 'banana', 'arboles', 'abanico',
+    'caracol', 'ventana', 'maleta', 'guitarra', 'espejo', 'cuchara', 'zapato', 'camisa',
+    'telefono', 'computadora', 'bicicleta', 'pelota', 'juego', 'hermoso', 'valiente',
+    'antiguo', 'aprender', 'creativo', 'resolver', 'invierno', 'mariposa', 'compás',
+    'jamás', 'mamá', 'sofá', 'café', 'ratón', 'avión', 'débil', 'cantó', 'lápiz', 'árbol',
+    'bebé', 'menú', 'allá', 'inglés', 'francés', 'cortó', 'bastó', 'cóndor', 'papá',
+    'régimen', 'fútbol', 'dólar', 'túnel', 'límite', 'éxito', 'héroe', 'razón', 'césped',
+    'ángel', 'tórax', 'táctil', 'difícil', 'fácil', 'pésimo', 'público', 'técnico',
+    'biología', 'lámpara'
+  ];
+
+  const palabrasUnicas = Array.from(new Set(palabras));
+  await insertIfEmpty('Palabras', palabrasUnicas.map(p => ({ palabra: p })));
+
 };
+  
 
 export const getDB = async (): Promise<IDBPDatabase> => {
   if (!dbInstance) {
-    await setupIndexedDB();
-    if (!dbInstance) {
-      throw new Error('La base de datos no está inicializada y el intento de configuración falló.');
-    }
+    throw new Error('La base de datos no está inicializada. Llama a setupIndexedDB() primero.');
   }
   return dbInstance;
 };
