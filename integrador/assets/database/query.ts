@@ -98,7 +98,7 @@ export const registrarUsuario = async (nuevoUsuario: Omit<Usuario, 'id'>): Promi
 
     await nivelXUsuarioStore.add({
       puntaje: 0,
-      tiempo: 60,
+      tiempo: 0,
       palabra: palabraInicial,
       intento: 0,
       recompensa_intento: '0',
@@ -199,7 +199,6 @@ export const insertNivelXUsuario = async (idUsuario: number) => {
 
   const idGenerado = await db.add('NivelXUsuario', nuevoRegistro);
   return {...nuevoRegistro, id: idGenerado as number}
-
 }
 
 //Modificar vidas cuando el jugador pierde

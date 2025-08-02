@@ -13,7 +13,7 @@ interface Props {
 const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     const idNivel = IdNivel;
     const longitud = palabraNivel.length;
-    const intentoMax = 5;
+    const intentoMax = 6;
     const [inicioJuego] = useState(Date.now());
     const { userId } = useUser();
     const [cantidadHerraminetas, setCantidadHerramientas] = useState<{ [tipo: string]: number }> ({
@@ -32,6 +32,8 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     );
     const [letraPos, setLetraPos] = useState(0);
     const [letrasReveladas, setLetrasReveladas] = useState<string[]>([]);
+    const [mostrarLetras, setMostrarLetras] = useState(false);
+
 
     const [resultadoFinal, setResultadoFinal] = useState<{ganado: boolean, puntos?: number, tiempo?: number} | null>(null);
     const [estadoTeclado, setEstadoTeclado] = useState<Record<string, 'correcta' | 'presente' | 'incorrecta' | undefined>>({});
@@ -201,6 +203,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     };
 
     const tecladoFilas = [
+      'ÁÉÍÓÚ'.split(''),
       'QWERTYUIOP'.split(''),
       'ASDFGHJKLÑ'.split(''),
       ['⌫', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⏎'],
@@ -254,12 +257,14 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
           contadores[h.tipo] = h.cantidad;
         });
 
-        
+        setMostrarLetras(true);
         setCantidadHerramientas(contadores);
 
       } else {
         mostrarModal("No hay más letras por revelar.");
       }
+
+        setBloqueado(false);
     };
 
     const usarPasaPalabra = async () => {
@@ -273,30 +278,39 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         return;
       }
 
-      const letrasUnicas = [...new Set(palabraNivel.split(''))];
-      setLetrasReveladas(prev => [...new Set([...prev, ...letrasUnicas])]);
+      const letrasTodas = palabraNivel.split('');
+      setLetrasReveladas(prev => [...new Set([...prev, ...letrasTodas])]);
 
       await restarHerramienta(userId!, "pasa");
+      
       const herramientasActualizadas = await getHerramienta(userId!);
         const contadores: { [tipo: string]: number } = { pasa: 0, ayuda: 0 };
         herramientasActualizadas.forEach(h => {
           contadores[h.tipo] = h.cantidad;
         });
-
-      setBloqueado(false);
+      
+      setMostrarLetras(true);
       setCantidadHerramientas(contadores);
+      setBloqueado(false);
     }
 
 
     return (
         <View style={styles.container}>
             <Text style={styles.title}>Adivina la palabra</Text>
-            <Text style={styles.subtitle}>Tienes {5-intentoActual} intentos</Text>
+            <Text style={styles.subtitle}><strong>Considerar que puede haber palabras con tilde en alguna de sus letras</strong></Text>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginVertical: 10 }}>              
-              {letrasReveladas.map((letra, i) => (
-                <Text key={i} style={{ fontSize: 18, color: 'orange', marginHorizontal: 4 }}>
-                  {letra.toUpperCase()}
+            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 5 }}>              
+              {palabraNivel.split('').map((letra, i) => (
+                <Text key={i} style={{fontSize: 20, color: letrasReveladas.includes(letra)  || letrasReveladas.length === palabraNivel.length 
+                  ? 'orange'
+                  : '#ccc',
+                  marginHorizontal: 4,
+                }}>
+                  <strong>{letrasReveladas.includes(letra) || letrasReveladas.length === palabraNivel.length
+                            ? letra.toUpperCase()
+                            : ''}
+                  </strong>
                 </Text>
               ))}
             </View>
