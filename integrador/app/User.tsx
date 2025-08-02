@@ -10,6 +10,7 @@ import {
   getNivelesXUsuario
 } from '@/assets/database/query';
 import { useUser } from '@/context/UserContext';
+import Footer from '@/components/Footer';
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
@@ -154,41 +155,18 @@ export default function ProfileScreen() {
       <TouchableOpacity 
         style={styles.actionButton}
         onPress={() => setShowEditModal(true)}
-      >
+        >
         <Text style={styles.actionButtonText}>Editar Perfil</Text>
       </TouchableOpacity>
       
       <TouchableOpacity 
         style={styles.actionButton}
         onPress={() => setShowSettingsModal(true)}
-      >
+        >
         <Text style={styles.actionButtonText}>Configuración</Text>
       </TouchableOpacity>
+        <Footer/> 
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={styles.footerButton}
-          onPress={() => navigation.navigate('Home')}
-        >
-          <Feather name="home" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.footerButton}
-          onPress={() => navigation.navigate('Shop')}
-        >
-          <Feather name="shopping-cart" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.footerButton}>
-          <Feather name="play" size={24} color="#fff" />
-        </TouchableOpacity>
-        <TouchableOpacity 
-          style={styles.footerButton}
-          onPress={() => navigation.navigate('User')}
-        >
-          <Feather name="user" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
 
       {/* Modal para Editar Perfil */}
       <Modal
@@ -289,6 +267,7 @@ export default function ProfileScreen() {
             </Pressable>
           </View>
         </View>
+
       </Modal>
     </View>
   );
