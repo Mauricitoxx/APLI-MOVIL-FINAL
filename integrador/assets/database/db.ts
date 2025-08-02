@@ -3,7 +3,7 @@ import { openDB, type IDBPDatabase } from 'idb';
 let dbInstance: IDBPDatabase | null = null;
 
 const DB_NAME = 'AppDB';
-const DB_VERSION = 12;
+const DB_VERSION = 13;
 
 export const setupIndexedDB = async (): Promise<void> => {
   console.log('Inicializando BD...');
@@ -78,11 +78,17 @@ export const setupIndexedDB = async (): Promise<void> => {
 
   await insertIfEmpty('Vida', [{ cantidad: 5, IdUsuario: 1 }, { cantidad: 1, IdUsuario: 2 }]);
 
-  await insertIfEmpty('Palabras', [
-    { palabra: 'ejemplo' }, { palabra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' }, { palabra: 'luz' }, { palabra: 'ojo' }, { palabra: 'voz' }, { palabra: 'te' }, { palabra: 'pan' }, { palabra: 'rio' }, { palabra: 'sal' }, 
-    { palabra: 'casa' }, { palabra: 'luna' }, { palabra: 'flor' }, { palabra: 'toro' }, { palabra: 'piel' }, { palabra: 'cine' }, { palabra: 'tren' }, { palabra: 'mesa' }, { palabra: 'vino' }, { palabra: 'nube' },
+  await insertIfEmpty('Palabras', [ 
+    { palabra: 'ejemplo' }, { palabra: 'prueba' }, { palabra: 'sol' }, { palabra: 'mar' }, { palabra: 'pez' }, { palabra: 'luz' }, { palabra: 'ojo' }, { palabra: 'voz' }, { palabra: 'te' }, { palabra: 'pan' }, { palabra: 'río' }, 
+    { palabra: 'sal' }, { palabra: 'casa' }, { palabra: 'luna' }, { palabra: 'flor' }, { palabra: 'toro' }, { palabra: 'piel' }, { palabra: 'cine' }, { palabra: 'tren' }, { palabra: 'mesa' }, { palabra: 'vino' }, { palabra: 'nube' },
     { palabra: 'cielo' }, { palabra: 'perro' }, { palabra: 'planta' }, { palabra: 'sueño' }, { palabra: 'papel' }, { palabra: 'reloj' }, { palabra: 'playa' }, { palabra: 'amigo' }, { palabra: 'calor' },
-    { palabra: 'camino' }, { palabra: 'tierra' }, { palabra: 'mirar' }, { palabra: 'mundo' },{ palabra: 'viento' },{ palabra: 'bosque' },
+    { palabra: 'camino' }, { palabra: 'tierra' }, { palabra: 'mirar' }, { palabra: 'mundo' }, { palabra: 'viento' }, { palabra: 'bosque' },
+    { palabra: 'mamá' }, { palabra: 'sofá' }, { palabra: 'café' }, { palabra: 'ratón' }, { palabra: 'avión' }, { palabra: 'compás' }, { palabra: 'jamás' },
+    { palabra: 'cantó' }, { palabra: 'lápiz' }, { palabra: 'árbol' }, { palabra: 'bebé' }, { palabra: 'menú' }, { palabra: 'fácil' }, { palabra: 'débil' },
+    { palabra: 'allá' }, { palabra: 'inglés' }, { palabra: 'francés' }, { palabra: 'cortó' }, { palabra: 'bastó' },
+    { palabra: 'cóndor' }, { palabra: 'papá' }, { palabra: 'régimen' }, { palabra: 'fútbol' },
+    { palabra: 'dólar' }, { palabra: 'túnel' }, { palabra: 'límite' },
+    { palabra: 'césped' }, { palabra: 'ángel' }, { palabra: 'tórax' }, { palabra: 'éxito' }, { palabra: 'héroe' }, { palabra: 'razón' }, { palabra: 'táctil' },
   ]);
   await tx.done;
 };
