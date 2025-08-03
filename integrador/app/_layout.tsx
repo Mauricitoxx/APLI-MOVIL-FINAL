@@ -1,17 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import AppNavigator from './AppNavigator';
-import { setupIndexedDB, getDB } from '@/assets/database/db';
+import { setupAsyncStorage } from '@/assets/database/db'; // <-- usa la nueva función
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
-
   const [isDBReady, setIsDBReady] = useState(false);
 
   useEffect(() => {
     const init = async () => {
-      await setupIndexedDB();
-      const db = await getDB();
-      console.log('Stores disponibles:', Array.from(db.objectStoreNames));
+      await setupAsyncStorage(); // <-- nueva función
+      console.log('AsyncStorage inicializado');
       setIsDBReady(true);
     };
     init();
@@ -24,7 +22,6 @@ export default function RootLayout() {
       </View>
     );
   }
-
 
   return <AppNavigator />;
 }
