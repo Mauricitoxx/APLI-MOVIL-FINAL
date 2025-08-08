@@ -15,10 +15,9 @@ interface Props {
 const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {  
     const {width} = useWindowDimensions();
 
-    const minLetterSize = 20;
-    const letterSize = Math.max(minLetterSize, Math.min((width - 40) / palabraNivel!.length, 40));
+    const minLetterSize = 37;
+    const letterSize = Math.max(minLetterSize, Math.min((width - 30) / palabraNivel!.length, 37));
     const fontSize = letterSize * 0.6;
-
 
     const idNivel = IdNivel;
     const longitud = palabraNivel ? palabraNivel.length : 0;
@@ -213,7 +212,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         </View>
     );
 
-    const teclaSize = letterSize * 1.1
+    const teclaSize = letterSize * 1.2
 
     // Obtiene el estilo de la celda de la cuadrícula
     const getEstiloLetra = (letra: string, index: number, filaIndex: number) => {
@@ -278,7 +277,8 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         'ÁÉÍÓÚ'.split(''),
         'QWERTYUIOP'.split(''),
         'ASDFGHJKLÑ'.split(''),
-        ['⌫', 'Z', 'X', 'C', 'V', 'B', 'N', 'M', '⏎'],
+        'ZXCVBNM'.split(''),
+        ['⌫','⏎'],
     ];
 
     // Uso de la herramienta "Revelar Letra"
@@ -385,7 +385,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
                     {/* Teclado */}
                     <View style={[styles.keyboard]}>
                         {tecladoFilas.map((fila, filaIndex) => (
-                            <View key={filaIndex} style={[styles.keyboardRow, { marginBottom: letterSize * 0.15 }]}>
+                            <View key={filaIndex} style={[styles.keyboardRow, { marginBottom: letterSize * 0.10 }]}>
                             {fila.map((letra) => {
                                 const isSpecial = letra === '⌫' || letra === '⏎';
                                 const onPress = letra === '⌫'
@@ -397,7 +397,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
                                 return (
                                 <TouchableOpacity
                                     key={letra}
-                                    style={[styles.key, obtenerColorTecla(letra), isSpecial && styles.specialKey, { width: isSpecial ? teclaSize * 1.6 : teclaSize, height: teclaSize }]}
+                                    style={[styles.key, obtenerColorTecla(letra), isSpecial && styles.specialKey, { width: isSpecial ? teclaSize * 1.5 : teclaSize, height: teclaSize }]}
                                     onPress={onPress}
                                     disabled={resultadoFinal !== null}
                                 >
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     key: {
         backgroundColor: '#444',
         margin: 3,
-        borderRadius: 6,
+        borderRadius: 9,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -548,7 +548,8 @@ const styles = StyleSheet.create({
         opacity: 0.6,
     },
     specialKey: {
-        backgroundColor: '#565758',
+        backgroundColor: '#737576ff',
+        marginHorizontal: 10,
     },
     keyText: {
         color: '#fff',
