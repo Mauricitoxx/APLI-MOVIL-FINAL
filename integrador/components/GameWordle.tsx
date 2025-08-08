@@ -1,8 +1,8 @@
-import { cargarDatosNivel, insertMoneda, restarVida, restarHerramienta, getHerramienta } from "@/assets/database/query";
+import {cargarDatosNivel, insertMoneda, restarVida, restarHerramienta, getHerramienta } from "@/assets/database/query";
 import { useUser } from "@/context/UserContext";
 import { useNavigation } from "expo-router";
 import React, {useEffect, useState} from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Dimensions, ScrollView  } from 'react-native';
+import { useWindowDimensions, View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView  } from 'react-native';
 
 // Interfaz para las propiedades del componente
 interface Props {
@@ -11,10 +11,15 @@ interface Props {
     onGameEnd: (ganado: boolean, puntos?: number, tiempo?: number) => void;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
-    
+const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {  
+    const {width} = useWindowDimensions();
+
+    const minLetterSize = 20;
+    const letterSize = Math.max(minLetterSize, Math.min((width - 40) / palabraNivel!.length, 40));
+    const fontSize = letterSize * 0.6;
+
+
     const idNivel = IdNivel;
     const longitud = palabraNivel ? palabraNivel.length : 0;
     const intentoMax = 6;
@@ -28,7 +33,6 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     
     const [bloqueado, setBloqueado] = useState(false);
 
-    // Ref para el callback de cierre del modal
     const cerrarModalCallback = React.useRef<() => void | null>(null);
     const navigation = useNavigation();
 
@@ -44,7 +48,6 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     const [resultadoFinal, setResultadoFinal] = useState<{ganado: boolean, puntos?: number, tiempo?: number} | null>(null);
     const [estadoTeclado, setEstadoTeclado] = useState<Record<string, 'correcta' | 'presente' | 'incorrecta' | undefined>>({});
 
-    // Estado para el modal
     const [mensajeModal, setMensajeModal] = useState('');
     const [visibleModal, setVisibleModal] = useState(false);
 
@@ -98,7 +101,7 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
 
     // Función para manejar el intento de palabra
     const handleEnter = async () => {
-        if (!palabraNivel) return; // Evita el fallo si la palabra no está definida
+        if (!palabraNivel) return; 
 
         console.log("Enter presionado");
         const intento = letrasIngresadas[intentoActual].join('').toLowerCase();
@@ -114,29 +117,26 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
             const objetivo = palabraNivel.toLowerCase();
             const letraObjetivo = objetivo[index];
 
-            // Comprobar si la letra es correcta en la posición correcta (verde)
+
             if (letra === letraObjetivo) return 'verde';
 
-            // Contar cuantas veces aparece la letra en la palabra objetivo
+
             const totalEnObjetivo = objetivo.split('').filter(l => l === letra).length;
-            // Contar cuantas veces ha sido adivinada la letra en posiciones correctas en intentos previos
+            
             const correctasPrevias = intento
                 .split('')
                 .filter((l, i) => l === letra && objetivo[i] === l && i < index).length;
 
-            // Comprobar si la letra está en la palabra pero en la posición incorrecta (amarillo)
+            
             if (objetivo.includes(letra) && correctasPrevias < totalEnObjetivo) {
                 return 'amarillo';
             }
 
-            // La letra no está en la palabra (gris)
             return 'gris';
         });
 
-        // Actualizar el estado del teclado visual
+
         actualizarTeclado(intento, colores);
-        
-        // --- Lógica del final del juego ---
 
         // Condición de victoria
         if (intento === palabraNivel.toLowerCase()) {
@@ -193,29 +193,35 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
     };
     
     // Renderiza una fila de la cuadrícula de juego
-    const renderFila = (fila: string[], filaIndex: number) => {
-        return (
-            <View key={filaIndex} style={styles.row}>
-                {fila.map((letra, index) => {
-                    const estilo = getEstiloLetra(letra, index, filaIndex);
-                    return (
-                        <View key={index} style={[styles.cell, estilo]}>
-                            <Text style={styles.cellText}>{letra.toUpperCase()}</Text>
-                        </View>
-                    );
-                })}
-            </View>
-        );
-    };
+    const renderFila = (fila: string[], filaIndex: number) => (
+        <View key={filaIndex} style={[styles.row, { marginBottom: letterSize * 0.2 }]}>
+            {fila.map((letra, index) => {
+            const estilo = getEstiloLetra(letra, index, filaIndex);
+            return (
+                <View
+                key={index}
+                style={[
+                    styles.cell,
+                    estilo,
+                    { width: letterSize, height: letterSize },
+                ]}
+                >
+                <Text style={[styles.cellText, { fontSize }]}>{letra.toUpperCase()}</Text>
+                </View>
+            );
+            })}
+        </View>
+    );
+
+    const teclaSize = letterSize * 1.1
 
     // Obtiene el estilo de la celda de la cuadrícula
     const getEstiloLetra = (letra: string, index: number, filaIndex: number) => {
         if (!palabraNivel) return styles.cellEmpty;
         
-        // Si la fila actual no ha sido intentada, la celda está vacía
+
         if (filaIndex >= intentoActual) {
-            // Se corrige la lógica para que las letras reveladas por herramientas
-            // solo se muestren en el área de pistas y no en la cuadrícula
+
             return styles.cellEmpty;
         }
         
@@ -223,22 +229,20 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
         const objetivo = palabraNivel.toLowerCase();
         const letraObjetivo = objetivo[index];
 
-        // Letra correcta en la posición correcta
+
         if (letra === letraObjetivo) return styles.cellCorrect;
 
-        // Contar cuantas veces aparece la letra en la palabra objetivo
+
         const totalEnObjetivo = objetivo.split('').filter(l => l === letra).length;
-        // Contar cuantas veces ha sido adivinada la letra en posiciones correctas
+
         const correctasPrevias = intentoFila
             .split('')
             .filter((l, i) => l === letra && objetivo[i] === l && i < index).length;
 
-        // Letra correcta pero en la posición incorrecta
         if (objetivo.includes(letra) && correctasPrevias < totalEnObjetivo) {
             return styles.cellMisplaced;
         }
 
-        // Letra incorrecta
         return styles.cellIncorrect;
     };
 
@@ -344,80 +348,80 @@ const GameWordle: React.FC<Props> = ({ IdNivel, palabraNivel, onGameEnd }) => {
 
 
     return (
-        
-        <View style={styles.container}>
-            <Text style={styles.title}>Adivina la palabra</Text>
-            <Text style={styles.subtitle}><strong>Considerar que puede haber palabras con tilde en alguna de sus letras</strong></Text>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} bounces={false}>
+            <View style={styles.container}>
+                <Text style={styles.title}>Adivina la palabra</Text>
+                <Text style={styles.subtitle}><strong>Considerar que puede haber palabras con tilde en alguna de sus letras</strong></Text>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'center', marginBottom: 5 }}>              
-            {palabraNivel!.split('').map((letra, i) => (
-                <Text key={i} style={{fontSize: 20, color: letrasReveladas.includes(letra)  || letrasReveladas.length === palabraNivel.length 
-                    ? 'orange'
-                    : '#ccc',
-                    marginHorizontal: 4,
-                    }}>
-                    <strong>{letrasReveladas.includes(letra) || letrasReveladas.length === palabraNivel.length
-                                ? letra.toUpperCase()
-                                : ''}
-                    </strong>
-                    </Text>
-                ))}
-                </View>
-                
-                {/* Cuadrícula de juego */}
-                {letrasIngresadas.map(renderFila)}
-
-                {/* Botones de herramientas */}
-                <View style={styles.contenedorHerramientas}>
-                    <TouchableOpacity onPress={usarAyudaLetra} style={styles.botonHerramienta} disabled={bloqueado}>
-                        <Text style={styles.textoBoton}>Revelar Letra: {cantidadHerraminetas["ayuda"]} </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity onPress={usarPasaPalabra} style={styles.botonHerramienta} disabled={bloqueado}>
-                        <Text style={styles.textoBoton}>Pasar Palabra: {cantidadHerraminetas["pasa"]}</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Teclado */}
-                <View style={styles.keyboard}>
-                    {tecladoFilas.map((fila, filaIndex) => (
-                        <View key={filaIndex} style={styles.keyboardRow}>
-                        {fila.map((letra) => {
-                            const isSpecial = letra === '⌫' || letra === '⏎';
-                            const onPress = letra === '⌫'
-                                ? handleBorrar
-                                : letra === '⏎'
-                                    ? handleEnter
-                                    : () => handleLetra(letra.toLowerCase());
-
-                            return (
-                            <TouchableOpacity
-                                key={letra}
-                                style={[styles.key, obtenerColorTecla(letra), isSpecial && styles.specialKey]}
-                                onPress={onPress}
-                                disabled={resultadoFinal !== null}
-                            >
-                                <Text style={styles.keyText}>{letra}</Text>
-                            </TouchableOpacity>
-                            );
-                        })}
-                        </View>
+                <View style={{ flexDirection: 'row', width: letterSize, height: letterSize, justifyContent: 'center', marginBottom: 5 }}>              
+                {palabraNivel!.split('').map((letra, i) => (
+                    <Text key={i} style={{fontSize: 20, color: letrasReveladas.includes(letra)  || letrasReveladas.length === palabraNivel!.length 
+                        ? 'orange'
+                        : '#ccc',
+                        marginHorizontal: 4,
+                        }}>
+                        <strong>{letrasReveladas.includes(letra) || letrasReveladas.length === palabraNivel!.length
+                                    ? letra.toUpperCase()
+                                    : ''}
+                        </strong>
+                        </Text>
                     ))}
-                </View>
-
-                {/* Modal de Resultado */}
-                <Modal transparent animationType="fade" visible={visibleModal} onRequestClose={cerrarModal}>
-                    <View style={styles.modalContainer}>
-                        <View style={styles.modalContent}>
-                            <Text style={styles.modalText}>{mensajeModal}</Text>
-                            <TouchableOpacity onPress={cerrarModal} style={styles.modalButton}>
-                                <Text style={styles.modalButtonText}>Aceptar</Text>
-                            </TouchableOpacity>
-                        </View>
                     </View>
-                </Modal>
-        </View>
-        
+                    
+                    {/* Tabla de juego */}
+                    {letrasIngresadas.map(renderFila)}
+
+                    {/* Botones de herramientas */}
+                    <View style={styles.contenedorHerramientas}>
+                        <TouchableOpacity onPress={usarAyudaLetra} style={styles.botonHerramienta} disabled={bloqueado}>
+                            <Text style={styles.textoBoton}>Revelar Letra: {cantidadHerraminetas["ayuda"]} </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity onPress={usarPasaPalabra} style={styles.botonHerramienta} disabled={bloqueado}>
+                            <Text style={styles.textoBoton}>Pasar Palabra: {cantidadHerraminetas["pasa"]}</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Teclado */}
+                    <View style={[styles.keyboard]}>
+                        {tecladoFilas.map((fila, filaIndex) => (
+                            <View key={filaIndex} style={[styles.keyboardRow, { marginBottom: letterSize * 0.15 }]}>
+                            {fila.map((letra) => {
+                                const isSpecial = letra === '⌫' || letra === '⏎';
+                                const onPress = letra === '⌫'
+                                    ? handleBorrar
+                                    : letra === '⏎'
+                                        ? handleEnter
+                                        : () => handleLetra(letra.toLowerCase());
+
+                                return (
+                                <TouchableOpacity
+                                    key={letra}
+                                    style={[styles.key, obtenerColorTecla(letra), isSpecial && styles.specialKey, { width: isSpecial ? teclaSize * 1.6 : teclaSize, height: teclaSize }]}
+                                    onPress={onPress}
+                                    disabled={resultadoFinal !== null}
+                                >
+                                    <Text style={[styles.keyText, {fontSize: fontSize * 0.9, fontWeight: 'bold'}]}>{letra}</Text>
+                                </TouchableOpacity>
+                                );
+                            })}
+                            </View>
+                        ))}
+                    </View>
+
+                    {/* Modal de Resultado */}
+                    <Modal transparent animationType="fade" visible={visibleModal} onRequestClose={cerrarModal}>
+                        <View style={styles.modalContainer}>
+                            <View style={styles.modalContent}>
+                                <Text style={styles.modalText}>{mensajeModal}</Text>
+                                <TouchableOpacity onPress={cerrarModal} style={styles.modalButton}>
+                                    <Text style={styles.modalButtonText}>Aceptar</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </Modal>
+            </View>
+        </ScrollView>
     );
 }
 
@@ -427,13 +431,17 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: '#121213',
         alignItems: 'center',
-        justifyContent: 'center',
-        padding: 10,
+        justifyContent: 'flex-start',
+        paddingVertical: 20,
+        paddingHorizontal: 10,
+        maxWidth: 600,
+        alignSelf: 'center',
     },
     row: { 
-        flexDirection: 'row', 
-        justifyContent: 'center', 
-        marginBottom: 8 
+        flexDirection: 'row',
+        justifyContent: 'center',
+        marginBottom: 6,
+        flexWrap: 'nowrap',
     },
     title: {
         color: '#7a4ef2',
@@ -481,17 +489,14 @@ const styles = StyleSheet.create({
     },
 
     cell: {
-        width: SCREEN_WIDTH * 0.06,
-        height: SCREEN_WIDTH * 0.06,
         borderWidth: 1,
-        margin: 4,
+        marginHorizontal: 3,
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 6,
     },
     cellText: { 
         fontWeight: 'bold', 
-        fontSize: SCREEN_WIDTH * 0.05,
         color: '#fff',
     },
     cellEmpty: { 
@@ -514,28 +519,21 @@ const styles = StyleSheet.create({
     keyboard: {
         marginTop: 20,
         width: '100%',
-        paddingHorizontal: 10,
+        maxWidth: 600,
         alignItems: 'center',
     },
     keyboardRow: {
         flexDirection: 'row',
         justifyContent: 'center',
-        marginBottom: 6,
         flexWrap: 'wrap',
-        maxWidth: '80%',
     },
     key: {
         backgroundColor: '#444',
-        paddingVertical: 12,
-        paddingHorizontal: 16,
-        margin: 4,
+        margin: 3,
         borderRadius: 6,
-        minWidth: SCREEN_WIDTH * 0.008,
-        aspectRatio:1,
         justifyContent: 'center',
         alignItems: 'center',
     },
-
     keyCorrect: { 
         backgroundColor: '#5bb652', 
         borderColor: '#5bb652' 
@@ -551,12 +549,9 @@ const styles = StyleSheet.create({
     },
     specialKey: {
         backgroundColor: '#565758',
-        minWidth: 60,
     },
     keyText: {
         color: '#fff',
-        fontSize: 20,
-        fontWeight: 'bold',
     },
     modalContainer: {
         flex: 1,
@@ -569,7 +564,6 @@ const styles = StyleSheet.create({
         backgroundColor: '#1e1e1f',
         borderRadius: 12,
         padding: 24,
-        width: Math.min(SCREEN_WIDTH * 0.9, 400),
         alignItems: 'center',
     },
     modalText: {

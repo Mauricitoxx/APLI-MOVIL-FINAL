@@ -26,7 +26,6 @@ export default function App() {
         <Stack.Screen name="User" component={User} />
         <Stack.Screen name="Game" component={Game} />
         <Stack.Screen name="Levels" component={LevelsScreen} />
-        
         <Stack.Screen name="GameScreen" component={GameScreen} />
       </Stack.Navigator>
     </UserProvider>
