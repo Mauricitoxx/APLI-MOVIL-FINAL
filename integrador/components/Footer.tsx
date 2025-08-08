@@ -25,7 +25,7 @@ const Footer = () => {
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.footerButton}
-        onPress={() => navigation.navigate('Home')} 
+        onPress={() => navigation.navigate('User')} 
       >
         <Feather name="user" size={24} color="#fff" />
       </TouchableOpacity>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { StyleSheet, SafeAreaView, useWindowDimensions, View } from 'react-native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import GameWordle from '../components/GameWordle';
 import { RootStackParamList } from '@/types/navigation';
@@ -9,6 +9,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'GameScreen'>;
 
 const GameScreen: React.FC<Props> = ({ route, navigation }) => {
   const { nivel, onGameEnd } = route.params;
+  const { width, height } = useWindowDimensions();
 
   if (!nivel || !nivel.palabra) {
     console.error('GameScreen: Nivel o palabra no definidos. Volviendo a la pantalla anterior.');
@@ -18,10 +19,9 @@ const GameScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleGameEnd = (ganado: boolean, puntos?: number, tiempo?: number) => {
     console.log("Fin del juego", { ganado, puntos, tiempo });
-    
+
     const resultado: NivelXUsuario = { ...nivel, puntaje: puntos ?? 0, tiempo: tiempo ?? 60 };
-    
-    // Verificación de seguridad antes de llamar a onGameEnd
+
     if (onGameEnd && typeof onGameEnd === 'function') {
       onGameEnd(resultado);
     } else {
@@ -31,25 +31,35 @@ const GameScreen: React.FC<Props> = ({ route, navigation }) => {
     navigation.goBack();
   };
 
+  const isPortrait = height >= width;
+
   return (
-    <View style={{ flex: 1 }}>
-      <GameWordle IdNivel={nivel.IdNivel} palabraNivel={nivel.palabra} onGameEnd={handleGameEnd} />
-    </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#121213' }}>
+      <View
+        style={[
+          styles.container,
+          {
+            paddingHorizontal: isPortrait ? width * 0.05 : width * 0.1,
+            paddingVertical: isPortrait ? height * 0.03 : height * 0.01,
+            maxWidth: Math.min(600, width * 0.9),
+          },
+        ]}
+      >
+        <GameWordle IdNivel={nivel.IdNivel} palabraNivel={nivel.palabra} onGameEnd={handleGameEnd} />
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  errorContainer: {
+  container: {
     flex: 1,
+    backgroundColor: '#121213',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121213',
-  },
-  errorText: {
-    color: 'red',
-    fontSize: 18,
-    textAlign: 'center',
-    padding: 20,
+    width: '100%',
+    alignSelf: 'center',
+    alignContent: 'center',
   },
 });
 

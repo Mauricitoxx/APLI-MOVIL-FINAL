@@ -7,6 +7,9 @@ export type RootStackParamList = {
   Home: undefined;
   Shop: undefined;
   User: undefined;
+  Levels: {
+    onGameEndFromHome?: (nivelActualizado: NivelXUsuario | null) => void;
+  };
   Game: {
     nivel: NivelXUsuario;
     onResultado: (resultado: NivelXUsuario | null) => void;
