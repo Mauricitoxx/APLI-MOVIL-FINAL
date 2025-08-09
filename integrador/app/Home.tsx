@@ -409,7 +409,7 @@ const styles = StyleSheet.create({
   },
   ruleButton: {
     paddingVertical: 9,
-    paddingHorizontal: 16,
+    paddingHorizontal: 10,
     backgroundColor: '#333',
     borderRadius: 8,
     marginTop: 8,

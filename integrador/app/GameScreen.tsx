@@ -39,7 +39,7 @@ const GameScreen: React.FC<Props> = ({ route, navigation }) => {
         style={[
           styles.container,
           {
-            paddingHorizontal: isPortrait ? width * 0.05 : width * 0.1,
+            paddingHorizontal: isPortrait ? width * 0.05 : width * 0.01,
             paddingVertical: isPortrait ? height * 0.03 : height * 0.01,
             maxWidth: Math.min(600, width * 0.9),
           },

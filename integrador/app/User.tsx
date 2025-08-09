@@ -107,13 +107,6 @@ export default function ProfileScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.currency}>
-        </View>
-        <View style={styles.currency}>
-        </View>
-      </View>
 
       {/* Perfil del usuario */}
       <View style={styles.profileSection}>
@@ -122,7 +115,6 @@ export default function ProfileScreen() {
           style={styles.profileImage}
         />
         <Text style={styles.profileName}>{profileName}</Text>
-        <Text style={styles.profileRank}>Rango: New York</Text>
         <Text style={styles.profileLevel}>Nível {nivel}</Text>
       </View>
 
@@ -302,10 +294,11 @@ const styles = StyleSheet.create({
   profileSection: {
     alignItems: 'center',
     marginBottom: 30,
+    marginTop: 15,
   },
   profileImage: {
-    width: 150,
-    height: 150,
+    width: 120,
+    height: 120,
     borderRadius: 75,
     borderWidth: 3,
     borderColor: '#7a4ef2',
