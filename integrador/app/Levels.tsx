@@ -58,7 +58,9 @@ interface LevelTileProps {
 const LevelTile = ({ item, navigation, onGameEnd }: LevelTileProps) => {
   const { width } = useWindowDimensions();
   const ITEM_SIZE_LEVELS_SCREEN = (width - SPACING * (numColumns + 1)) / numColumns;
-  const ITEMS_FINAL_SIZE = ITEM_SIZE_LEVELS_SCREEN * 0.8;
+
+  const MAX_ITEM_SIZE = 80; 
+  const ITEMS_FINAL_SIZE = Math.min(ITEM_SIZE_LEVELS_SCREEN * 0.8, MAX_ITEM_SIZE);
 
   const backgroundColor = getBackgroundColor(item.status as 'completed' | 'current' | 'locked');
   const textColor = getTextColor(item.status as 'completed' | 'current' | 'locked');
@@ -80,7 +82,7 @@ const LevelTile = ({ item, navigation, onGameEnd }: LevelTileProps) => {
       }}
       disabled={isLocked}
     >
-      <Text style={[styles.levelText, { color: textColor, fontSize: ITEMS_FINAL_SIZE * 0.4 }]}>
+      <Text style={[styles.levelText, { color: textColor, fontSize: ITEMS_FINAL_SIZE * 0.5 }]}>
         {item.IdNivel}
       </Text>
     </TouchableOpacity>

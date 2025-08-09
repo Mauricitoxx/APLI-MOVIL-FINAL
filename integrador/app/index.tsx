@@ -60,7 +60,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   title: {
-    fontSize: 28,
+    fontSize: 40,
     fontWeight: 'bold',
     marginBottom: 40,
     color: '#fff',
