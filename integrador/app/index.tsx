@@ -3,7 +3,7 @@ import { ImageBackground, StyleSheet, Text, TouchableOpacity, View } from 'react
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from './Game';
-import { setupAsyncStorage } from '@/assets/database/db'; // ← cambio acá
+import { setupAsyncStorage } from '@/assets/database/db';
 
 export default function IndexScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
@@ -12,7 +12,7 @@ export default function IndexScreen() {
     const initDatabase = async () => {
       try {
         console.log('IndexScreen: Inicializando AsyncStorage desde index.tsx...');
-        await setupAsyncStorage(); // ← ahora usamos esto
+        await setupAsyncStorage(); 
       } catch (error) {
         console.error('IndexScreen: Error al inicializar AsyncStorage:', error);
       }

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import AppNavigator from './AppNavigator';
-import { setupAsyncStorage } from '@/assets/database/db'; // <-- usa la nueva función
+import { setupAsyncStorage } from '@/assets/database/db';
 import { ActivityIndicator, View } from 'react-native';
 
 export default function RootLayout() {
@@ -8,7 +8,7 @@ export default function RootLayout() {
 
   useEffect(() => {
     const init = async () => {
-      await setupAsyncStorage(); // <-- nueva función
+      await setupAsyncStorage();
       console.log('AsyncStorage inicializado');
       setIsDBReady(true);
     };
