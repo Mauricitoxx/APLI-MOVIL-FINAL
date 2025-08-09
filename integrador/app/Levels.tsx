@@ -1,8 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
-import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { Feather } from '@expo/vector-icons';
 import Footer from '@/components/Footer';
 import { useUser } from '@/context/UserContext';
 import { getNivelesXUsuario } from '@/assets/database/query';
@@ -28,11 +27,10 @@ export type RootStackParamList = {
   };
 };
 
-const { width } = Dimensions.get('window');
 const SPACING = 10;
 const numColumns = 6;
-const ITEM_SIZE_LEVELS_SCREEN = (width - SPACING * (numColumns + 1)) / numColumns;
 const TOTAL_NIVELES = 30;
+
 
 const getBackgroundColor = (status: 'completed' | 'current' | 'locked') => {
   switch (status) {
@@ -58,13 +56,19 @@ interface LevelTileProps {
 }
 
 const LevelTile = ({ item, navigation, onGameEnd }: LevelTileProps) => {
+  const { width } = useWindowDimensions();
+  const ITEM_SIZE_LEVELS_SCREEN = (width - SPACING * (numColumns + 1)) / numColumns;
+
+  const MAX_ITEM_SIZE = 80; 
+  const ITEMS_FINAL_SIZE = Math.min(ITEM_SIZE_LEVELS_SCREEN * 0.8, MAX_ITEM_SIZE);
+
   const backgroundColor = getBackgroundColor(item.status as 'completed' | 'current' | 'locked');
   const textColor = getTextColor(item.status as 'completed' | 'current' | 'locked');
   const isLocked = item.status === 'locked';
 
   return (
     <TouchableOpacity
-      style={[styles.levelItem, { backgroundColor, width: ITEM_SIZE_LEVELS_SCREEN, height: ITEM_SIZE_LEVELS_SCREEN }]}
+      style={[styles.levelItem, { backgroundColor, width: ITEMS_FINAL_SIZE, height: ITEMS_FINAL_SIZE}]}
       onPress={() => {
         if (!isLocked) {
           navigation.navigate('Game', { 
@@ -78,7 +82,7 @@ const LevelTile = ({ item, navigation, onGameEnd }: LevelTileProps) => {
       }}
       disabled={isLocked}
     >
-      <Text style={[styles.levelText, { color: textColor }]}>
+      <Text style={[styles.levelText, { color: textColor, fontSize: ITEMS_FINAL_SIZE * 0.5 }]}>
         {item.IdNivel}
       </Text>
     </TouchableOpacity>
@@ -133,7 +137,7 @@ const LevelsScreen = ({ navigation, route }: LevelsScreenProps) => {
             const longitudPalabra = 2 + Math.ceil(i / 5);
 
             generatedLevels.push({
-              id: nivelFromMap?.id || null,
+              id: nivelFromMap?.id ?? null,
               puntaje: nivelFromMap?.puntaje ?? 0,
               tiempo: nivelFromMap?.tiempo ?? 0,
               // La palabra se obtiene más adelante
@@ -216,7 +220,6 @@ const styles = StyleSheet.create({
     margin: SPACING / 2,
   },
   levelText: {
-    fontSize: 24,
     fontWeight: 'bold',
   },
 });
