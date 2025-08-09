@@ -1,86 +1,40 @@
-import { openDB, type IDBPDatabase } from 'idb';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-let dbInstance: IDBPDatabase | null = null;
+export const setupAsyncStorage = async () => {
+  console.log('Inicializando almacenamiento...');
 
-const DB_NAME = 'AppDB';
-const DB_VERSION = 33;
-
-
-export const setupIndexedDB = async (): Promise<void> => {
-  console.log('Inicializando BD...');
-  if (dbInstance) return;
-  
-  dbInstance = await openDB(DB_NAME, DB_VERSION, {
-    upgrade(database) {
-      if (!database.objectStoreNames.contains('Usuario')) {
-        const usuarioStore = database.createObjectStore('Usuario', { keyPath: 'id', autoIncrement: true });
-        usuarioStore.createIndex('mail', 'mail', { unique: true });
-        usuarioStore.createIndex('nombre_usuario', 'nombre_usuario', { unique: true });
-        usuarioStore.createIndex('id', 'id', { unique: true });
-      }
-      if (!database.objectStoreNames.contains('Nivel')){
-        database.createObjectStore('Nivel', { keyPath: 'id', autoIncrement: true });
-      }
-      if (!database.objectStoreNames.contains('NivelXUsuario')){
-        const nivelXUsuarioStore = database.createObjectStore('NivelXUsuario', { keyPath: 'id', autoIncrement: true });
-        nivelXUsuarioStore.createIndex('IdUsuario', 'IdUsuario');
-        nivelXUsuarioStore.createIndex('IdUsuario_IdNivel', ['IdUsuario', 'IdNivel'], { unique: true });
-      }
-      if (!database.objectStoreNames.contains('Herramienta')){
-        const herramientaStore = database.createObjectStore('Herramienta', { keyPath: 'id', autoIncrement: true });
-        herramientaStore.createIndex('IdUsuario', 'IdUsuario');
-      }
-      if (!database.objectStoreNames.contains('Vida')){
-        const vidaStore = database.createObjectStore('Vida', { keyPath: 'id', autoIncrement: true });
-        vidaStore.createIndex('IdUsuario', 'IdUsuario');
-      }
-      if (!database.objectStoreNames.contains('Palabras')){
-        const palabrasStore = database.createObjectStore('Palabras', { keyPath: 'id', autoIncrement: true });
-        palabrasStore.createIndex('palabra', 'palabra', { unique: true });
-      }
+  const initializeIfEmpty = async (key: string, defaultData: any[]) => {
+    const existing = await AsyncStorage.getItem(key);
+    if (!existing) {
+      await AsyncStorage.setItem(key, JSON.stringify(defaultData));
     }
-  });
-  // Insertar datos de prueba si las tablas están vacías
-  //const tx = dbInstance.transaction(['Usuario', 'Nivel', 'NivelXUsuario', 'Herramienta', 'Vida', 'Palabras'], 'readwrite');
-  
-  const insertIfEmpty = async (storeName: string, defaultItems: any[]) => {
-    const tx = dbInstance!.transaction(storeName, 'readwrite');
-    const store = tx.objectStore(storeName);
-    const count = await store.count();
-    if (count === 0) {
-      for (const item of defaultItems) {
-        try {
-          await store.add(item);
-        } catch (error) {
-          console.warn(`No se pudo insertar en ${storeName}:`, item, error);
-        }
-      }
-    }
-    await tx.done;
   };
 
-  await insertIfEmpty('Usuario', [
-    { nombre_completo: 'Admin', nombre_usuario: 'admin', mail: 'admin@mail.com', contrasena: 'admin', racha: 0, monedas: 0 },
-    { nombre_completo: 'Test User', nombre_usuario: 'test', mail: 'test@mail.com', contrasena: '1234', racha: 0, monedas: 0 }
+  await initializeIfEmpty('Usuario', [
+    { id: 1, nombre_completo: 'Admin', nombre_usuario: 'admin', mail: 'admin@mail.com', contrasena: 'admin', racha: 0, monedas: 0 },
+    { id: 2, nombre_completo: 'Test User', nombre_usuario: 'test', mail: 'test@mail.com', contrasena: '1234', racha: 0, monedas: 0 }
   ]);
 
-  await insertIfEmpty('Nivel', [{ recompensa: 100 }, { recompensa: 200 }]);
-
-  await insertIfEmpty('NivelXUsuario', [
-    { puntaje: 10, tiempo: 60, palabra: 'sol', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 },
-    { puntaje: 80, tiempo: 20, palabra: 'mar', intento: 1, recompensa_intento: '30', IdUsuario: 2, IdNivel: 2 }
-  ]);
-  
-  await insertIfEmpty('Herramienta', [
-    { tipo: 'pasa', cantidad: 0, IdUsuario: 1 },
-    { tipo: 'ayuda', cantidad: 0, IdUsuario: 1 },
-    { tipo: 'pasa', cantidad: 3, IdUsuario: 2 },
-    { tipo: 'ayuda', cantidad: 0, IdUsuario: 2 }
+  await initializeIfEmpty('Nivel', [
+    { id: 1, recompensa: 100 },
+    { id: 2, recompensa: 200 }
   ]);
 
-  await insertIfEmpty('Vida', [
-    { cantidad: 5, IdUsuario: 1 }, 
-    { cantidad: 1, IdUsuario: 2 }
+  await initializeIfEmpty('NivelXUsuario', [
+    { id: 1, puntaje: 10, tiempo: 60, palabra: 'sol', intento: 1, recompensa_intento: '50', IdUsuario: 1, IdNivel: 1 },
+    { id: 2, puntaje: 80, tiempo: 20, palabra: 'mar', intento: 1, recompensa_intento: '30', IdUsuario: 2, IdNivel: 2 }
+  ]);
+
+  await initializeIfEmpty('Herramienta', [
+    { id: 1, tipo: 'pasa', cantidad: 0, IdUsuario: 1 },
+    { id: 2, tipo: 'ayuda', cantidad: 0, IdUsuario: 1 },
+    { id: 3, tipo: 'pasa', cantidad: 3, IdUsuario: 2 },
+    { id: 4, tipo: 'ayuda', cantidad: 0, IdUsuario: 2 }
+  ]);
+
+  await initializeIfEmpty('Vida', [
+    { id: 1, cantidad: 5, IdUsuario: 1 },
+    { id: 2, cantidad: 1, IdUsuario: 2 }
   ]);
 
   const palabras = [
@@ -97,16 +51,37 @@ export const setupIndexedDB = async (): Promise<void> => {
     'ángel', 'tórax', 'táctil', 'difícil', 'fácil', 'pésimo', 'público', 'técnico',
     'biología', 'lámpara'
   ];
-
-  const palabrasUnicas = Array.from(new Set(palabras));
-  await insertIfEmpty('Palabras', palabrasUnicas.map(p => ({ palabra: p })));
-
+  await initializeIfEmpty('Palabras', palabras.map((p, i) => ({ id: i + 1, palabra: p })));
 };
-  
 
-export const getDB = async (): Promise<IDBPDatabase> => {
-  if (!dbInstance) {
-    throw new Error('La base de datos no está inicializada. Llama a setupIndexedDB() primero.');
+export const getData = async (key: string): Promise<any[]> => {
+  const data = await AsyncStorage.getItem(key);
+  return data ? JSON.parse(data) : [];
+};
+
+export const saveData = async (key: string, value: any[]) => {
+  await AsyncStorage.setItem(key, JSON.stringify(value));
+};
+
+export const addData = async (key: string, item: any): Promise<number> => {
+  const data = await getData(key);
+  const newId = data.length > 0 ? Math.max(...data.map(d => d.id || 0)) + 1 : 1;
+  const newItem = { ...item, id: newId };
+  data.push(newItem);
+  await saveData(key, data);
+  return newId;
+};
+
+export const updateData = async (key: string, item: any): Promise<void> => {
+  const data = await getData(key);
+  const index = data.findIndex(d => d.id === item.id);
+  if (index !== -1) {
+    data[index] = item;
+    await saveData(key, data);
   }
-  return dbInstance;
+};
+
+export const getItemById = async (key: string, id: number): Promise<any | null> => {
+  const data = await getData(key);
+  return data.find(d => d.id === id) || null;
 };
